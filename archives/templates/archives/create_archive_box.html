@@ -1,0 +1,40 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}创建档案盒{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">创建档案盒</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="box_number">档案盒编号</label>
+            <input type="text" name="box_number" id="box_number" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">描述</label>
+            <textarea name="description" id="description" class="form-control"></textarea>
+        </div>
+        
+        <div class="form-check">
+            <input type="checkbox" name="is_archive_box" id="is_archive_box" class="form-check-input">
+            <label for="is_archive_box" class="form-check-label">是否为档案盒</label>
+        </div>
+        
+        <div class="form-group">
+            <label for="slot_id">选择存放位置</label>
+            <select name="slot_id" id="slot_id" class="form-control">
+                <option value="">请选择存放位置</option>
+                {% for slot in slots %}
+                    <option value="{{ slot.id }}">{{ slot }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">创建档案盒</button>
+    </form>
+</div>
+{% endblock %}

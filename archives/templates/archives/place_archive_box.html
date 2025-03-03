@@ -1,0 +1,23 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}放置档案盒{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">放置档案盒</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="box_id">选择档案盒</label>
+            <select name="box_id" id="box_id" class="form-control">
+                <option value="">请选择档案盒</option>
+                {% for box in boxes %}
+                    <option value="{{ box.id }}">{{ box.box_number }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">放置档案盒</button>
+    </form>
+</div>
+{% endblock %}

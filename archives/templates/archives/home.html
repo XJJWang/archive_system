@@ -1,0 +1,84 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}档案管理系统 - 首页{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="mb-4">档案管理系统</h1>
+        <p class="lead">欢迎使用档案管理系统，您可以在这里高效地管理档案信息与存放位置。</p>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-search fa-3x mb-3 text-primary"></i>
+                <h3>查找档案</h3>
+                <p class="text-muted">快速查找您需要的档案信息和位置。</p>
+                <a href="{% url 'archive_list' %}" class="btn btn-outline-primary">查看档案列表</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-plus-circle fa-3x mb-3 text-primary"></i>
+                <h3>录入档案</h3>
+                <p class="text-muted">将新档案录入系统并选择合适的存放位置。</p>
+                <a href="{% url 'archive_create' %}" class="btn btn-outline-primary">录入新档案</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-th fa-3x mb-3 text-primary"></i>
+                <h3>查看空位</h3>
+                <p class="text-muted">浏览各个档案室和柜子，查看可用空位。</p>
+                <a href="#archive-rooms" class="btn btn-outline-primary">查看档案室</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-4" id="archive-rooms">档案室列表</h2>
+
+<div class="row">
+    {% for room in rooms %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ room.name }}</h5>
+                <span class="badge bg-light text-dark">{{ room.cabinets.count }} 个柜子</span>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ room.description|default:"暂无描述"|truncatewords:20 }}</p>
+                
+                <h6 class="mb-3">柜子列表:</h6>
+                <div class="list-group">
+                    {% for cabinet in room.cabinets.all %}
+                    <a href="{% url 'cabinet_slots' cabinet.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-archive me-2 text-primary"></i>
+                            {{ cabinet.cabinet_number }} 号柜子
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ cabinet.slots.count }} 格</span>
+                    </a>
+                    {% empty %}
+                    <div class="list-group-item text-muted">暂无柜子</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>暂无档案室，请先创建档案室。
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

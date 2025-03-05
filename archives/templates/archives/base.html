@@ -10,7 +10,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'archives:home' %}">
+            <a class="navbar-brand" href="/">
                 <i class="fas fa-archive me-2"></i>档案管理系统
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -19,14 +19,14 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'archives:home' %}">首页</a>
+                        <a class="nav-link" href="/">首页</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="archiveDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             档案管理
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="archiveDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-box me-2"></i>创建档案盒</a></li>
+                            <li><a class="dropdown-item" href="/create-archive-box/"><i class="fas fa-box me-2"></i>创建新档案盒</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-file-alt me-2"></i>添加档案</a></li>
                         </ul>
                     </li>

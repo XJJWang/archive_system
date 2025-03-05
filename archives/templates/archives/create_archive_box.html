@@ -1,40 +1,216 @@
 {% extends 'archives/base.html' %}
 
-{% block title %}创建档案盒{% endblock %}
+{% block title %}创建新档案盒{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="my-4">创建档案盒</h1>
-    
-    <form method="post">
-        {% csrf_token %}
-        
-        <div class="form-group">
-            <label for="box_number">档案盒编号</label>
-            <input type="text" name="box_number" id="box_number" class="form-control" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="description">描述</label>
-            <textarea name="description" id="description" class="form-control"></textarea>
-        </div>
-        
-        <div class="form-check">
-            <input type="checkbox" name="is_archive_box" id="is_archive_box" class="form-check-input">
-            <label for="is_archive_box" class="form-check-label">是否为档案盒</label>
-        </div>
-        
-        <div class="form-group">
-            <label for="slot_id">选择存放位置</label>
-            <select name="slot_id" id="slot_id" class="form-control">
-                <option value="">请选择存放位置</option>
-                {% for slot in slots %}
-                    <option value="{{ slot.id }}">{{ slot }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">创建档案盒</button>
-    </form>
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-3">创建新档案盒</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item active">创建新档案盒</li>
+            </ol>
+        </nav>
+    </div>
 </div>
+
+{% if messages %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">档案盒信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="create-archive-box-form">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">名称 <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.document_number.id_for_label }}" class="form-label">文档号</label>
+                            {{ form.document_number }}
+                            {% if form.document_number.errors %}
+                            <div class="text-danger">{{ form.document_number.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.date.id_for_label }}" class="form-label">日期</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                            <div class="text-danger">{{ form.date.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check mt-4">
+                                {{ form.is_special }}
+                                <label class="form-check-label" for="{{ form.is_special.id_for_label }}">
+                                    特殊项目（非标准档案盒）
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">描述</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="mt-4 mb-3">存放位置</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="id_archive_room" class="form-label">档案室</label>
+                            {{ form.archive_room }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_cabinet" class="form-label">柜子</label>
+                            {{ form.cabinet }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_slot" class="form-label">格子</label>
+                            <select name="slot" id="id_slot" class="form-select" required>
+                                <option value="">---------</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> 保存档案盒
+                        </button>
+                        <a href="/" class="btn btn-secondary ms-2">
+                            <i class="fas fa-times me-1"></i> 取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">操作指南</h5>
+            </div>
+            <div class="card-body">
+                <p><i class="fas fa-info-circle text-info me-2"></i> 创建档案盒前，请确保已设置好档案室、柜子和格子。</p>
+                <hr>
+                <h6><i class="fas fa-lightbulb text-warning me-1"></i> 填写说明：</h6>
+                <ul>
+                    <li>名称：档案盒的名称，用于识别，必填</li>
+                    <li>文档号：可选的文档编号</li>
+                    <li>日期：与档案盒相关的日期，可选</li>
+                    <li>特殊项目：勾选此项表示这不是标准档案盒，而是其他形式（如书籍、图纸等）</li>
+                    <li>描述：添加关于档案盒内容的额外描述</li>
+                </ul>
+                <hr>
+                <h6><i class="fas fa-map-marker-alt text-danger me-1"></i> 位置选择：</h6>
+                <ol>
+                    <li>先选择档案室</li>
+                    <li>选择对应的柜子</li>
+                    <li>选择合适的格子存放位置</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 档案室变化时加载柜子
+        const archiveRoomSelect = document.getElementById('id_archive_room');
+        const cabinetSelect = document.getElementById('id_cabinet');
+        const slotSelect = document.getElementById('id_slot');
+        
+        archiveRoomSelect.addEventListener('change', function() {
+            // 清空柜子和格子选择
+            cabinetSelect.innerHTML = '<option value="">---------</option>';
+            slotSelect.innerHTML = '<option value="">---------</option>';
+            
+            const archiveRoomId = this.value;
+            if (archiveRoomId) {
+                // 发送AJAX请求获取柜子
+                fetch(`/ajax/load-cabinets/?archive_room=${archiveRoomId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(cabinet => {
+                            const option = document.createElement('option');
+                            option.value = cabinet.id;
+                            option.textContent = `${cabinet.cabinet_number}号柜子`;
+                            cabinetSelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+        
+        // 柜子变化时加载格子
+        cabinetSelect.addEventListener('change', function() {
+            slotSelect.innerHTML = '<option value="">---------</option>';
+            
+            const cabinetId = this.value;
+            if (cabinetId) {
+                // 发送AJAX请求获取空闲格子
+                fetch(`/ajax/load-slots/?cabinet=${cabinetId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length === 0) {
+                            const option = document.createElement('option');
+                            option.value = "";
+                            option.textContent = "没有可用的空格子";
+                            slotSelect.appendChild(option);
+                        } else {
+                            data.forEach(slot => {
+                                const option = document.createElement('option');
+                                option.value = slot.id;
+                                option.textContent = slot.display;
+                                slotSelect.appendChild(option);
+                            });
+                        }
+                    });
+            }
+        });
+        
+        // 表单验证
+        const form = document.getElementById('create-archive-box-form');
+        form.addEventListener('submit', function(event) {
+            const nameInput = document.getElementById('id_name');
+            const slotSelect = document.getElementById('id_slot');
+            
+            if (!nameInput.value.trim()) {
+                alert('请输入档案盒名称');
+                event.preventDefault();
+                return;
+            }
+            
+            if (!slotSelect.value) {
+                alert('请选择存放位置');
+                event.preventDefault();
+                return;
+            }
+        });
+    });
+</script>
 {% endblock %}

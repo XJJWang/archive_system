@@ -21,6 +21,15 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'archives:home' %}">首页</a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="archiveDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            档案管理
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="archiveDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-box me-2"></i>创建档案盒</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-file-alt me-2"></i>添加档案</a></li>
+                        </ul>
+                    </li>
                 </ul>
                 <div class="d-flex">
                     <a href="/admin/" class="btn btn-outline-light">

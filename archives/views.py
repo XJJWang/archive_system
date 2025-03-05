@@ -1,8 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
-from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox
-from .forms import ArchiveBoxForm
+from django.forms import formset_factory
+from django.db import transaction
+from django.utils import timezone
+from datetime import datetime
+from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox, Archive
+from .forms import ArchiveBoxForm, ArchiveForm, ArchiveFormSet
 
 def home(request):
     """首页视图"""
@@ -61,3 +65,67 @@ def load_slots(request):
         }
         data.append(slot_data)
     return JsonResponse(data, safe=False)
+
+
+def add_archives(request):
+    """批量添加档案视图"""
+    # 获取最新添加的非特殊档案盒，按创建时间降序排序
+    recent_boxes = ArchiveBox.objects.filter(is_special=False).order_by('-created_at')[:10]
+    
+    if request.method == 'POST':
+        formset = ArchiveFormSet(request.POST)
+        
+        if formset.is_valid():
+            # 获取选择的档案盒
+            box_id = request.POST.get('archive_box')
+            
+            if not box_id:
+                messages.error(request, '请选择档案盒')
+                return render(request, 'archives/add_archives.html', {
+                    'formset': formset,
+                    'recent_boxes': recent_boxes,
+                })
+            
+            try:
+                box = ArchiveBox.objects.get(id=box_id)
+                
+                # 使用事务确保所有档案要么全部添加成功，要么全部失败
+                with transaction.atomic():
+                    added_count = 0
+                    
+                    for form in formset:
+                        # 只处理填写了内容的表单
+                        if form.cleaned_data and form.cleaned_data.get('title'):
+                            archive = form.save(commit=False)
+                            archive.box = box
+                            
+                            # 如果没有设置入库时间，使用档案盒的日期或当前时间
+                            if not archive.import_date:
+                                if box.date:
+                                    archive.import_date = datetime.combine(box.date, datetime.min.time())
+                                else:
+                                    archive.import_date = timezone.now()
+                            
+                            archive.save()
+                            added_count += 1
+                    
+                    if added_count > 0:
+                        if added_count == 1:
+                            messages.success(request, f'成功添加1份档案到"{box.name}"')
+                        else:
+                            messages.success(request, f'成功添加{added_count}份档案到"{box.name}"')
+                        return redirect('/')
+                    else:
+                        messages.warning(request, '未添加任何档案，请填写至少一份档案信息')
+                
+            except ArchiveBox.DoesNotExist:
+                messages.error(request, '选择的档案盒不存在')
+        else:
+            messages.error(request, '表单数据有误，请检查后重新提交')
+    else:
+        formset = ArchiveFormSet()
+    
+    return render(request, 'archives/add_archives.html', {
+        'formset': formset,
+        'recent_boxes': recent_boxes,
+    })

@@ -1,6 +1,6 @@
 from django import forms
-from django.forms import widgets
-from .models import ArchiveBox, ArchiveRoom, Cabinet, Slot
+from django.forms import widgets, formset_factory
+from .models import ArchiveBox, ArchiveRoom, Cabinet, Slot, Archive
 
 class ArchiveBoxForm(forms.ModelForm):
     archive_room = forms.ModelChoiceField(
@@ -41,3 +41,24 @@ class ArchiveBoxForm(forms.ModelForm):
                 self.fields['cabinet'].queryset = Cabinet.objects.filter(archive_room_id=archive_room_id)
             except (ValueError, TypeError):
                 pass
+
+class ArchiveForm(forms.ModelForm):
+    class Meta:
+        model = Archive
+        fields = ['title', 'description', 'copy_count', 'import_date', 'is_in_stock']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'copy_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'import_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'is_in_stock': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['description'].required = False
+        self.fields['is_in_stock'].initial = True
+        self.fields['import_date'].required = False  # 允许为空，会在视图中设置默认值
+
+# 创建一个档案表单集，初始显示5行，最多添加20行
+ArchiveFormSet = formset_factory(ArchiveForm, extra=5, max_num=20)

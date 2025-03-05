@@ -103,7 +103,7 @@ class Archive(models.Model):
     title = models.CharField(max_length=200, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     box = models.ForeignKey(ArchiveBox, on_delete=models.CASCADE, related_name="archives", verbose_name="所属档案盒")
-    import_date = models.DateTimeField(auto_now_add=True, verbose_name="入库时间")
+    import_date = models.DateTimeField(verbose_name="入库时间")
     copy_count = models.PositiveIntegerField(default=1, verbose_name="份数")
     is_in_stock = models.BooleanField(default=True, verbose_name="是否在库中")
     

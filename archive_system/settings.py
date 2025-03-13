@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'archives',
+    'borrow',
     'widget_tweaks',
 ]
 

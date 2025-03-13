@@ -9,7 +9,7 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'project_list' %}">项目管理</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'archives:project_list' %}">项目管理</a></li>
                 <li class="breadcrumb-item active">{{ project.name }}</li>
             </ol>
         </nav>
@@ -18,7 +18,7 @@
         <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editProjectModal">
             <i class="fas fa-edit me-1"></i> 编辑项目
         </button>
-        <a href="{% url 'create_archive_box' %}?project={{ project.id }}" class="btn btn-primary">
+        <a href="{% url 'archives:create_archive_box' %}?project={{ project.id }}" class="btn btn-primary">
             <i class="fas fa-plus-circle me-1"></i> 添加档案盒
         </a>
     </div>
@@ -150,7 +150,7 @@
                 <h5 class="modal-title" id="editProjectModalLabel">编辑项目</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'edit_project' project.id %}">
+            <form method="post" action="{% url 'archives:edit_project' project.id %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">

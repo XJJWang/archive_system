@@ -61,7 +61,7 @@
                                 <td>{{ project.archive_boxes.count }}</td>
                                 <td>{{ project.created_at|date:"Y-m-d H:i" }}</td>
                                 <td>
-                                    <a href="{% url 'project_detail' project.id %}" class="btn btn-sm btn-info">
+                                    <a href="{% url 'archives:project_detail' project.id %}" class="btn btn-sm btn-info">
                                         <i class="fas fa-info-circle"></i> 详情
                                     </a>
                                     <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal" data-bs-target="#editProjectModal-{{ project.id }}">
@@ -91,7 +91,7 @@
                 <h5 class="modal-title" id="createProjectModalLabel">创建新项目</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'create_project' %}">
+            <form method="post" action="{% url 'archives:create_project' %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
@@ -130,7 +130,7 @@
                 <h5 class="modal-title" id="editProjectModalLabel-{{ project.id }}">编辑项目</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'edit_project' project.id %}">
+            <form method="post" action="{% url 'archives:edit_project' project.id %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">

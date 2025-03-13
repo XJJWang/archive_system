@@ -195,7 +195,7 @@ def create_project(request):
         )
         
         messages.success(request, f'项目 "{project.name}" 创建成功！')
-        return redirect('project_detail', pk=project.pk)
+        return redirect('archives:project_detail', pk=project.id)
     
     return redirect('project_list')
 

@@ -1,15 +1,19 @@
 {% extends 'archives/base.html' %}
 
-{% block title %}批量添加档案{% endblock %}
+{% block title %}添加档案{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h1 class="mb-3">批量添加档案</h1>
+        <h1 class="mb-3">添加档案</h1>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item active">批量添加档案</li>
+                {% if selected_box %}
+                <li class="breadcrumb-item"><a href="{% url 'project_detail' selected_box.project.id %}">{{ selected_box.project.name }}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'archive_box_detail' selected_box.id %}">{{ selected_box.name }}</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active">添加档案</li>
             </ol>
         </nav>
     </div>
@@ -28,98 +32,78 @@
 {% endif %}
 
 <div class="row">
-    <div class="col-12">
-        <div class="card mb-4">
+    <div class="col-md-8">
+        <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">选择档案盒</h5>
+                <h5 class="card-title mb-0">批量添加档案</h5>
             </div>
             <div class="card-body">
-                <form method="post" id="add-archives-form">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <label for="archive_box" class="form-label">选择要添加档案的档案盒 <span class="text-danger">*</span></label>
-                            <select name="archive_box" id="archive_box" class="form-select" required>
-                                <option value="">-- 请选择档案盒 --</option>
-                                {% for box in recent_boxes %}
-                                <option value="{{ box.id }}">{{ box.name }} - {{ box.get_location_description }}</option>
-                                {% empty %}
-                                <option value="" disabled>没有可用的档案盒，请先创建</option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle text-info me-1"></i> 
-                                显示最近创建的10个非特殊档案盒
+                    
+                    <div class="mb-4">
+                        <label class="form-label">选择档案盒 <span class="text-danger">*</span></label>
+                        <select name="archive_box" class="form-select" required>
+                            <option value="">请选择档案盒...</option>
+                            {% for box in recent_boxes %}
+                            <option value="{{ box.id }}" {% if selected_box and selected_box.id == box.id %}selected{% endif %}>
+                                {{ box.name }} - {{ box.project.name }} {% if box.document_number %}({{ box.document_number }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">选择要添加档案的档案盒</div>
+                    </div>
+                    
+                    <hr class="my-4">
+
+                    {{ formset.management_form }}
+                    {% for form in formset %}
+                    <div class="archive-form mb-4 p-3 border rounded {% if forloop.first %}bg-light{% endif %}">
+                        <h6 class="mb-3">档案 #{{ forloop.counter }}</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">标题</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                <div class="text-danger">{{ form.title.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.copy_count.id_for_label }}" class="form-label">份数</label>
+                                {{ form.copy_count }}
+                                {% if form.copy_count.errors %}
+                                <div class="text-danger">{{ form.copy_count.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3 d-flex align-items-center">
+                                <div class="form-check mt-4">
+                                    {{ form.is_in_stock }}
+                                    <label class="form-check-label" for="{{ form.is_in_stock.id_for_label }}">
+                                        在库中
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <a href="/create-archive-box/" class="btn btn-outline-primary">
-                                <i class="fas fa-plus-circle me-1"></i> 创建新档案盒
-                            </a>
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">描述</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
                         </div>
+                        <div class="mb-3">
+                            <label for="{{ form.pdf_file.id_for_label }}" class="form-label">PDF扫描件</label>
+                            {{ form.pdf_file }}
+                            {% if form.pdf_file.errors %}
+                            <div class="text-danger">{{ form.pdf_file.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">上传PDF格式的扫描文件（可选）</div>
+                        </div>
+                        {% for hidden_field in form.hidden_fields %}
+                        {{ hidden_field }}
+                        {% endfor %}
                     </div>
-                    
-                    <h5 class="mb-3">档案信息</h5>
-                    <p class="text-muted mb-4">您可以一次添加多份档案。至少填写一行，只有填写了"标题"的行才会被保存。</p>
-                    
-                    {{ formset.management_form }}
-                    
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 5%">#</th>
-                                    <th style="width: 25%">标题 <span class="text-danger">*</span></th>
-                                    <th style="width: 30%">描述</th>
-                                    <th style="width: 15%">入库日期</th>
-                                    <th style="width: 10%">份数</th>
-                                    <th style="width: 15%">状态</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for form in formset %}
-                                <tr class="archive-form-row">
-                                    <td class="text-center">{{ forloop.counter }}</td>
-                                    <td>
-                                        {{ form.title }}
-                                        {% if form.title.errors %}
-                                        <div class="text-danger">{{ form.title.errors }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ form.description }}
-                                        {% if form.description.errors %}
-                                        <div class="text-danger">{{ form.description.errors }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ form.import_date }}
-                                        {% if form.import_date.errors %}
-                                        <div class="text-danger">{{ form.import_date.errors }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ form.copy_count }}
-                                        {% if form.copy_count.errors %}
-                                        <div class="text-danger">{{ form.copy_count.errors }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="form-check">
-                                            {{ form.is_in_stock }}
-                                            <label class="form-check-label" for="{{ form.is_in_stock.id_for_label }}">
-                                                在库
-                                            </label>
-                                        </div>
-                                        {% if form.is_in_stock.errors %}
-                                        <div class="text-danger">{{ form.is_in_stock.errors }}</div>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    {% endfor %}
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">
@@ -132,77 +116,28 @@
                 </form>
             </div>
         </div>
-        
+    </div>
+    
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">批量添加指南</h5>
+                <h5 class="card-title mb-0">操作指南</h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-lightbulb text-warning me-1"></i> 填写说明：</h6>
-                        <ul>
-                            <li>标题：档案的名称，必填</li>
-                            <li>描述：关于档案的详细描述，可选</li>
-                            <li>入库日期：档案入库的日期，默认为今天</li>
-                            <li>份数：此档案的份数，默认为1</li>
-                            <li>状态：勾选表示档案在库，取消勾选表示档案已借出</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-info-circle text-info me-1"></i> 批量添加提示：</h6>
-                        <ul>
-                            <li>您最多可以一次添加20个档案</li>
-                            <li>只有填写了标题的行才会被保存</li>
-                            <li>空行将被自动忽略</li>
-                            <li>所有档案将被添加到您选择的档案盒中</li>
-                        </ul>
-                    </div>
-                </div>
+                <p><i class="fas fa-info-circle text-info me-2"></i> 批量添加档案到指定的档案盒中。</p>
+                <hr>
+                <h6><i class="fas fa-lightbulb text-warning me-1"></i> 填写说明：</h6>
+                <ul>
+                    <li>标题：档案的标题，必填</li>
+                    <li>份数：该档案的份数，默认为1</li>
+                    <li>在库中：勾选表示该档案当前在库中，未勾选表示已借出</li>
+                    <li>描述：添加关于档案的额外描述，可选</li>
+                    <li>PDF扫描件：上传档案的电子扫描件，仅支持PDF格式，可选</li>
+                </ul>
+                <hr>
+                <p><i class="fas fa-exclamation-triangle text-danger me-2"></i> 只有填写了标题的档案才会被添加到系统中。</p>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 设置所有份数默认为1
-        const countInputs = document.querySelectorAll('input[type="number"]');
-        countInputs.forEach(input => {
-            if (!input.value) {
-                input.value = 1;
-            }
-        });
-        
-        // 表单验证
-        const form = document.getElementById('add-archives-form');
-        form.addEventListener('submit', function(event) {
-            const boxSelect = document.getElementById('archive_box');
-            
-            if (!boxSelect.value) {
-                alert('请选择档案盒');
-                event.preventDefault();
-                return;
-            }
-            
-            // 检查是否至少有一行填写了标题
-            const titleInputs = document.querySelectorAll('input[name$="-title"]');
-            let hasTitle = false;
-            
-            titleInputs.forEach(input => {
-                if (input.value.trim()) {
-                    hasTitle = true;
-                }
-            });
-            
-            if (!hasTitle) {
-                alert('请至少填写一个档案的标题');
-                event.preventDefault();
-                return;
-            }
-        });
-    });
-</script>
 {% endblock %}

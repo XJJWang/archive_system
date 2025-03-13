@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.forms import formset_factory
 from django.db import transaction
-from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox, Archive
+from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox, Archive, Project
 from .forms import ArchiveBoxForm, ArchiveForm, ArchiveFormSet
 from django.utils import timezone
 from datetime import datetime
@@ -16,33 +16,46 @@ def home(request):
     })
 
 def create_archive_box(request):
-    """创建新档案盒视图"""
+    """创建新档案盒"""
+    initial_data = {}
+    
+    # 如果URL中包含project参数，预选项目
+    project_id = request.GET.get('project')
+    if project_id:
+        try:
+            project = Project.objects.get(id=project_id)
+            initial_data['project'] = project.id
+        except (Project.DoesNotExist, ValueError):
+            pass
+    
     if request.method == 'POST':
         form = ArchiveBoxForm(request.POST)
         if form.is_valid():
-            # 创建档案盒但暂不保存
-            archive_box = form.save(commit=False)
-            
-            # 获取所选格子
-            slot_id = request.POST.get('slot')
-            if slot_id:
-                slot = get_object_or_404(Slot, id=slot_id)
-                archive_box.slot = slot
-            
-            # 保存档案盒
-            archive_box.save()
-            
-            messages.success(request, f'档案盒 "{archive_box.name}" 创建成功！')
-            return redirect('home')
+            # 确保project是有效的ID或对象
+            if not form.cleaned_data.get('project'):
+                # 如果没有选择项目，返回错误
+                form.add_error('project', '必须选择一个项目')
+            else:
+                archive_box = form.save(commit=False)
+                
+                # 处理位置信息
+                slot_id = request.POST.get('slot')
+                if slot_id:
+                    try:
+                        slot = Slot.objects.get(id=slot_id)
+                        archive_box.slot = slot
+                    except (Slot.DoesNotExist, ValueError):
+                        # 处理无效的slot_id
+                        pass
+                
+                archive_box.save()
+                messages.success(request, f'档案盒 "{archive_box.name}" 创建成功！')
+                return redirect('archive_box_detail', pk=archive_box.pk)
     else:
-        form = ArchiveBoxForm()
-    
-    # 获取所有档案室
-    archive_rooms = ArchiveRoom.objects.all()
+        form = ArchiveBoxForm(initial=initial_data)
     
     return render(request, 'archives/create_archive_box.html', {
         'form': form,
-        'archive_rooms': archive_rooms,
     })
 
 def load_cabinets(request):
@@ -72,8 +85,17 @@ def add_archives(request):
     # 获取最新添加的非特殊档案盒，按创建时间降序排序
     recent_boxes = ArchiveBox.objects.filter(is_special=False).order_by('-created_at')[:10]
     
+    # 预选档案盒（如果从URL参数中提供）
+    selected_box_id = request.GET.get('box')
+    selected_box = None
+    if selected_box_id:
+        try:
+            selected_box = ArchiveBox.objects.get(id=selected_box_id)
+        except (ArchiveBox.DoesNotExist, ValueError):
+            pass
+    
     if request.method == 'POST':
-        formset = ArchiveFormSet(request.POST)
+        formset = ArchiveFormSet(request.POST, request.FILES)
         
         if formset.is_valid():
             # 获取选择的档案盒
@@ -84,6 +106,7 @@ def add_archives(request):
                 return render(request, 'archives/add_archives.html', {
                     'formset': formset,
                     'recent_boxes': recent_boxes,
+                    'selected_box': selected_box,
                 })
             
             try:
@@ -99,10 +122,10 @@ def add_archives(request):
                             archive = form.save(commit=False)
                             archive.box = box
                             
-                            # 不必处理 import_date，因为我们在 Archive 模型的 save 方法中已处理
-                            # 如果表单提交了日期，将使用表单日期
-                            # 如果没有提交日期，模型的 save 方法会设置为当前时间
-                            
+                            # 处理PDF文件上传（如果有）
+                            if 'pdf_file' in form.files:
+                                archive.pdf_file = form.files['pdf_file']
+                                
                             archive.save()
                             added_count += 1
                     
@@ -111,7 +134,7 @@ def add_archives(request):
                             messages.success(request, f'成功添加1份档案到"{box.name}"')
                         else:
                             messages.success(request, f'成功添加{added_count}份档案到"{box.name}"')
-                        return redirect('/')
+                        return redirect('archive_box_detail', pk=box.pk)
                     else:
                         messages.warning(request, '未添加任何档案，请填写至少一份档案信息')
                 
@@ -125,4 +148,170 @@ def add_archives(request):
     return render(request, 'archives/add_archives.html', {
         'formset': formset,
         'recent_boxes': recent_boxes,
+        'selected_box': selected_box,
+    })
+
+def project_list(request):
+    """项目列表视图"""
+    projects = Project.objects.all().order_by('-year', 'name')
+    current_year = datetime.now().year
+    return render(request, 'archives/project_list.html', {
+        'projects': projects,
+        'current_year': current_year
+    })
+
+def project_detail(request, pk):
+    """项目详情视图"""
+    project = get_object_or_404(Project, pk=pk)
+    archive_boxes = project.archive_boxes.all().order_by('-created_at')
+    return render(request, 'archives/project_detail.html', {
+        'project': project,
+        'archive_boxes': archive_boxes
+    })
+
+def create_project(request):
+    """创建新项目"""
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        short_name = request.POST.get('short_name', '')
+        year = request.POST.get('year')
+        information = request.POST.get('information', '')
+        
+        if not name or not year:
+            messages.error(request, '项目名称和年份不能为空')
+            return redirect('project_list')
+        
+        try:
+            year = int(year)
+        except ValueError:
+            messages.error(request, '年份必须是数字')
+            return redirect('project_list')
+        
+        project = Project.objects.create(
+            name=name,
+            short_name=short_name if short_name else None,
+            year=year,
+            information=information
+        )
+        
+        messages.success(request, f'项目 "{project.name}" 创建成功！')
+        return redirect('project_detail', pk=project.pk)
+    
+    return redirect('project_list')
+
+def initialize_cabinets(request):
+    """初始化柜子和格子"""
+    # 获取唯一的档案室
+    try:
+        archive_room = ArchiveRoom.objects.first()
+        if not archive_room:
+            messages.error(request, '没有找到档案室，请先创建档案室')
+            return redirect('home')
+            
+        # 获取当前柜子数量
+        existing_cabinets = Cabinet.objects.filter(archive_room=archive_room).count()
+        
+        # 添加10个柜子
+        cabinets_created = 0
+        slots_created = 0
+        
+        for i in range(1, 11):
+            cabinet_number = f"{existing_cabinets + i:02d}"
+            cabinet, created = Cabinet.objects.get_or_create(
+                archive_room=archive_room,
+                cabinet_number=cabinet_number,
+                defaults={
+                    'rows': 6,
+                    'columns': 5
+                }
+            )
+            
+            if created:
+                cabinets_created += 1
+                
+                # 为每个柜子创建格子（左侧和右侧）
+                for side in ['left', 'right']:
+                    for row in range(1, 7):  # 6行
+                        for col in range(1, 6):  # 5列
+                            slot, slot_created = Slot.objects.get_or_create(
+                                cabinet=cabinet,
+                                side=side,
+                                row=row,
+                                column=col,
+                                defaults={'is_occupied': False}
+                            )
+                            if slot_created:
+                                slots_created += 1
+        
+        if cabinets_created > 0:
+            messages.success(request, f'成功创建{cabinets_created}个柜子和{slots_created}个格子')
+        else:
+            messages.info(request, '柜子已存在，没有新建柜子')
+            
+        return redirect('home')
+        
+    except Exception as e:
+        messages.error(request, f'初始化柜子时出错: {str(e)}')
+        return redirect('home')
+
+def edit_project(request, pk):
+    """编辑项目信息"""
+    project = get_object_or_404(Project, pk=pk)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        short_name = request.POST.get('short_name', '')
+        year = request.POST.get('year')
+        information = request.POST.get('information', '')
+        
+        if not name or not year:
+            messages.error(request, '项目名称和年份不能为空')
+            # 获取Referer，以确定用户来自哪个页面
+            referer = request.META.get('HTTP_REFERER', '')
+            if 'projects/' in referer and not f'projects/{pk}' in referer:
+                # 如果来自项目列表页
+                return redirect('project_list')
+            # 否则，返回项目详情页
+            return redirect('project_detail', pk=project.pk)
+        
+        try:
+            year = int(year)
+        except ValueError:
+            messages.error(request, '年份必须是数字')
+            # 获取Referer，以确定用户来自哪个页面
+            referer = request.META.get('HTTP_REFERER', '')
+            if 'projects/' in referer and not f'projects/{pk}' in referer:
+                # 如果来自项目列表页
+                return redirect('project_list')
+            # 否则，返回项目详情页
+            return redirect('project_detail', pk=project.pk)
+        
+        # 更新项目信息
+        project.name = name
+        project.short_name = short_name if short_name else None
+        project.year = year
+        project.information = information
+        project.save()
+        
+        messages.success(request, f'项目 "{project.name}" 更新成功！')
+        
+        # 获取Referer，以确定用户来自哪个页面
+        referer = request.META.get('HTTP_REFERER', '')
+        if 'projects/' in referer and not f'projects/{pk}' in referer:
+            # 如果来自项目列表页
+            return redirect('project_list')
+        # 否则，返回项目详情页
+        return redirect('project_detail', pk=project.pk)
+    
+    # 对于GET请求，重定向到项目详情页
+    return redirect('project_detail', pk=project.pk)
+
+def archive_box_detail(request, pk):
+    """档案盒详情视图"""
+    archive_box = get_object_or_404(ArchiveBox, pk=pk)
+    archives = archive_box.archives.all().order_by('-import_date')
+    
+    return render(request, 'archives/archive_box_detail.html', {
+        'box': archive_box,
+        'archives': archives,
     })

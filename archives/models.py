@@ -62,6 +62,7 @@ class ArchiveBox(models.Model):
     slot = models.OneToOneField(Slot, on_delete=models.SET_NULL, null=True, blank=True, related_name="archive_box", verbose_name="所在格子")
     is_special = models.BooleanField(default=False, verbose_name="是否特殊项目")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name="archive_boxes", verbose_name="所属项目")
     
     class Meta:
         verbose_name = "档案盒"
@@ -106,6 +107,7 @@ class Archive(models.Model):
     import_date = models.DateTimeField(auto_now_add=True, verbose_name="入库时间")
     copy_count = models.PositiveIntegerField(default=1, verbose_name="份数")
     is_in_stock = models.BooleanField(default=True, verbose_name="是否在库中")
+    pdf_file = models.FileField(upload_to='archives/pdfs/%Y/%m/', blank=True, null=True, verbose_name="PDF扫描件")
     
     class Meta:
         verbose_name = "档案"
@@ -137,3 +139,22 @@ class Archive(models.Model):
         slot = self.box.slot
         side_display = '左侧' if slot.side == 'left' else '右侧'
         return f"{slot.cabinet.cabinet_number}号柜子{side_display}第{slot.row}排第{slot.column}列"
+
+
+class Project(models.Model):
+    """项目模型"""
+    name = models.CharField(max_length=200, verbose_name="项目名称")
+    short_name = models.CharField(max_length=50, blank=True, null=True, verbose_name="项目简称")
+    year = models.IntegerField(verbose_name="年份")
+    information = models.TextField(blank=True, null=True, verbose_name="基本信息")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    
+    class Meta:
+        verbose_name = "项目"
+        verbose_name_plural = "项目"
+        ordering = ['-year', 'name']
+        
+    def __str__(self):
+        if self.short_name:
+            return f"{self.short_name} ({self.year})"
+        return f"{self.name} ({self.year})"

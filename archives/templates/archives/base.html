@@ -30,6 +30,11 @@
                             <li><a class="dropdown-item" href="/add-archives/"><i class="fas fa-file-alt me-2"></i>添加档案</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'project_list' %}">
+                            <i class="fas fa-folder-open me-1"></i> 项目管理
+                        </a>
+                    </li>
                 </ul>
                 <div class="d-flex">
                     <a href="/admin/" class="btn btn-outline-light">

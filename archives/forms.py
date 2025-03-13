@@ -19,13 +19,14 @@ class ArchiveBoxForm(forms.ModelForm):
     
     class Meta:
         model = ArchiveBox
-        fields = ['name', 'document_number', 'date', 'description', 'is_special']
+        fields = ['name', 'document_number', 'date', 'description', 'is_special', 'project']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'document_number': forms.TextInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_special': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'project': forms.Select(attrs={'class': 'form-select'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -57,6 +58,8 @@ class ArchiveForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['description'].required = False
         self.fields['is_in_stock'].initial = True
+        self.fields['pdf_file'].required = False
+        self.fields['pdf_file'].widget.attrs.update({'class': 'form-control'})
 
 # 创建一个档案表单集，初始显示5行，最多添加20行
 ArchiveFormSet = formset_factory(ArchiveForm, extra=5, max_num=20)

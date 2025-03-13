@@ -1,0 +1,166 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}{{ box.name }} - 档案盒详情{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-3">{{ box.name }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'project_detail' box.project.id %}">{{ box.project.name }}</a></li>
+                <li class="breadcrumb-item active">{{ box.name }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'add_archives' %}?box={{ box.id }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> 添加档案
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">档案盒信息</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">名称</div>
+                            {{ box.name }}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">所属项目</div>
+                            <a href="{% url 'project_detail' box.project.id %}">{{ box.project.name }}</a>
+                        </div>
+                    </li>
+                    {% if box.document_number %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">文档号</div>
+                            {{ box.document_number }}
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if box.date %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">日期</div>
+                            {{ box.date|date:"Y-m-d" }}
+                        </div>
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">类型</div>
+                            {% if box.is_special %}特殊项目{% else %}标准档案盒{% endif %}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">存放位置</div>
+                            {{ box.get_location_description }}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">创建时间</div>
+                            {{ box.created_at|date:"Y-m-d H:i" }}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if box.description %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">档案盒描述</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ box.description|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">档案列表</h5>
+            </div>
+            <div class="card-body">
+                {% if archives %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>标题</th>
+                                <th>入库时间</th>
+                                <th>份数</th>
+                                <th>状态</th>
+                                <th>PDF</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for archive in archives %}
+                            <tr>
+                                <td>{{ archive.title }}</td>
+                                <td>{{ archive.import_date|date:"Y-m-d" }}</td>
+                                <td>{{ archive.copy_count }}</td>
+                                <td>
+                                    {% if archive.is_in_stock %}
+                                    <span class="badge bg-success">在库</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">借出</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if archive.pdf_file %}
+                                    <a href="{{ archive.pdf_file.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-pdf"></i> 查看
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-info">
+                                        <i class="fas fa-info-circle"></i> 详情
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">该档案盒中暂无档案，请点击"添加档案"按钮添加。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

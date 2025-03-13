@@ -1,0 +1,182 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}{{ project.name }} - 项目详情{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-3">{{ project.name }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'project_list' %}">项目管理</a></li>
+                <li class="breadcrumb-item active">{{ project.name }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-4 text-end">
+        <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+            <i class="fas fa-edit me-1"></i> 编辑项目
+        </button>
+        <a href="{% url 'create_archive_box' %}?project={{ project.id }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> 添加档案盒
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">项目信息</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">项目名称</div>
+                            {{ project.name }}
+                        </div>
+                    </li>
+                    {% if project.short_name %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">项目简称</div>
+                            {{ project.short_name }}
+                        </div>
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">年份</div>
+                            {{ project.year }}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">创建时间</div>
+                            {{ project.created_at|date:"Y-m-d H:i" }}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">档案盒数量</div>
+                            {{ archive_boxes.count }}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if project.information %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">基本信息</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ project.information|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">相关档案盒</h5>
+            </div>
+            <div class="card-body">
+                {% if archive_boxes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>日期</th>
+                                <th>位置</th>
+                                <th>档案数量</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for box in archive_boxes %}
+                            <tr>
+                                <td>
+                                    {% if box.is_special %}
+                                    <span class="badge bg-warning text-dark me-1">特殊</span>
+                                    {% endif %}
+                                    {{ box.name }}
+                                </td>
+                                <td>{{ box.date|default:"-" }}</td>
+                                <td>{{ box.get_location_description }}</td>
+                                <td>{{ box.archives.count }}</td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-info">
+                                        <i class="fas fa-info-circle"></i> 详情
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">该项目下暂无档案盒，请点击"添加档案盒"按钮添加。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑项目模态框 -->
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProjectModalLabel">编辑项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'edit_project' project.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="project_name" class="form-label">项目名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="project_name" name="name" value="{{ project.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="project_short_name" class="form-label">项目简称</label>
+                        <input type="text" class="form-control" id="project_short_name" name="short_name" maxlength="50" value="{{ project.short_name|default:'' }}">
+                        <div class="form-text">可选项，用于在空间有限的地方显示</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="project_year" class="form-label">年份 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="project_year" name="year" min="1900" max="2100" value="{{ project.year }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="project_information" class="form-label">基本信息</label>
+                        <textarea class="form-control" id="project_information" name="information" rows="3">{{ project.information|default:'' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

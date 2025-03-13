@@ -3,10 +3,10 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.forms import formset_factory
 from django.db import transaction
-from django.utils import timezone
-from datetime import datetime
 from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox, Archive
 from .forms import ArchiveBoxForm, ArchiveForm, ArchiveFormSet
+from django.utils import timezone
+from datetime import datetime
 
 def home(request):
     """首页视图"""
@@ -99,12 +99,9 @@ def add_archives(request):
                             archive = form.save(commit=False)
                             archive.box = box
                             
-                            # 如果没有设置入库时间，使用档案盒的日期或当前时间
-                            if not archive.import_date:
-                                if box.date:
-                                    archive.import_date = datetime.combine(box.date, datetime.min.time())
-                                else:
-                                    archive.import_date = timezone.now()
+                            # 不必处理 import_date，因为我们在 Archive 模型的 save 方法中已处理
+                            # 如果表单提交了日期，将使用表单日期
+                            # 如果没有提交日期，模型的 save 方法会设置为当前时间
                             
                             archive.save()
                             added_count += 1

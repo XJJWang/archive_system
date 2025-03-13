@@ -103,7 +103,7 @@ class Archive(models.Model):
     title = models.CharField(max_length=200, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     box = models.ForeignKey(ArchiveBox, on_delete=models.CASCADE, related_name="archives", verbose_name="所属档案盒")
-    import_date = models.DateTimeField(verbose_name="入库时间")
+    import_date = models.DateTimeField(auto_now_add=True, verbose_name="入库时间")
     copy_count = models.PositiveIntegerField(default=1, verbose_name="份数")
     is_in_stock = models.BooleanField(default=True, verbose_name="是否在库中")
     
@@ -115,10 +115,6 @@ class Archive(models.Model):
         return self.title
     
     def save(self, *args, **kwargs):
-        # 保存时更新格子的占用状态
-        if self.slot:
-            self.slot.is_occupied = True
-            self.slot.save()
         super().save(*args, **kwargs)
 
     @classmethod
@@ -136,7 +132,8 @@ class Archive(models.Model):
             return None            
     def get_location_description(self):
         """获取档案位置描述"""
-        if not self.slot:
+        if not self.box or not self.box.slot:
             return "未放置"
-        side_display = '左侧' if self.slot.side == 'left' else '右侧'
-        return f"{self.slot.cabinet.cabinet_number}号柜子{side_display}第{self.slot.row}排第{self.slot.column}列"
+        slot = self.box.slot
+        side_display = '左侧' if slot.side == 'left' else '右侧'
+        return f"{slot.cabinet.cabinet_number}号柜子{side_display}第{slot.row}排第{slot.column}列"

@@ -37,9 +37,31 @@
                     </li>
                 </ul>
                 <div class="d-flex">
-                    <a href="/admin/" class="btn btn-outline-light">
-                        <i class="fas fa-cog me-1"></i>管理后台
+                    {% if user.is_authenticated %}
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2"></i>管理后台</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li>
+                                <form method="post" action="{% url 'archives:logout' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'archives:login' %}" class="btn btn-outline-light">
+                        <i class="fas fa-sign-in-alt me-1"></i>登录
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

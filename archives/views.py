@@ -7,7 +7,14 @@ from .models import ArchiveRoom, Cabinet, Slot, ArchiveBox, Archive, Project
 from .forms import ArchiveBoxForm, ArchiveForm, ArchiveFormSet
 from django.utils import timezone
 from datetime import datetime
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import Group
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def home(request):
     """首页视图"""
     rooms = ArchiveRoom.objects.all().prefetch_related('cabinets', 'cabinets__slots')
@@ -15,6 +22,33 @@ def home(request):
         'rooms': rooms
     })
 
+def archives_login(request):
+    """档案管理系统登录视图"""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # 检查用户是否是档案室管理员
+            print(user.groups)
+            if user.groups.filter(name='档案室管理员').exists():
+                login(request, user)
+                return redirect('archives:home')
+            else:
+                messages.error(request, '您没有权限访问档案管理系统')
+        else:
+            messages.error(request, '用户名或密码不正确')
+    
+    return render(request, 'archives/login.html')
+
+def archives_logout(request):
+    """档案管理系统登出"""
+    logout(request)
+    return redirect('archives:login')
+
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def create_archive_box(request):
     """创建新档案盒"""
     initial_data = {}
@@ -50,7 +84,7 @@ def create_archive_box(request):
                 
                 archive_box.save()
                 messages.success(request, f'档案盒 "{archive_box.name}" 创建成功！')
-                return redirect('archive_box_detail', pk=archive_box.pk)
+                return redirect('archives:archive_box_detail', pk=archive_box.pk)
     else:
         form = ArchiveBoxForm(initial=initial_data)
     
@@ -58,12 +92,18 @@ def create_archive_box(request):
         'form': form,
     })
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def load_cabinets(request):
     """AJAX加载柜子列表"""
     archive_room_id = request.GET.get('archive_room')
     cabinets = Cabinet.objects.filter(archive_room_id=archive_room_id).order_by('cabinet_number')
     return JsonResponse(list(cabinets.values('id', 'cabinet_number')), safe=False)
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def load_slots(request):
     """AJAX加载可用格子列表"""
     cabinet_id = request.GET.get('cabinet')
@@ -80,6 +120,8 @@ def load_slots(request):
     return JsonResponse(data, safe=False)
 
 
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def add_archives(request):
     """批量添加档案视图"""
     # 获取最新添加的非特殊档案盒，按创建时间降序排序
@@ -134,7 +176,7 @@ def add_archives(request):
                             messages.success(request, f'成功添加1份档案到"{box.name}"')
                         else:
                             messages.success(request, f'成功添加{added_count}份档案到"{box.name}"')
-                        return redirect('archive_box_detail', pk=box.pk)
+                        return redirect('archives:archive_box_detail', pk=box.pk)
                     else:
                         messages.warning(request, '未添加任何档案，请填写至少一份档案信息')
                 
@@ -151,6 +193,9 @@ def add_archives(request):
         'selected_box': selected_box,
     })
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def project_list(request):
     """项目列表视图"""
     projects = Project.objects.all().order_by('-year', 'name')
@@ -160,6 +205,9 @@ def project_list(request):
         'current_year': current_year
     })
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def project_detail(request, pk):
     """项目详情视图"""
     project = get_object_or_404(Project, pk=pk)
@@ -169,6 +217,9 @@ def project_detail(request, pk):
         'archive_boxes': archive_boxes
     })
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def create_project(request):
     """创建新项目"""
     if request.method == 'POST':
@@ -179,13 +230,13 @@ def create_project(request):
         
         if not name or not year:
             messages.error(request, '项目名称和年份不能为空')
-            return redirect('project_list')
+            return redirect('archives:project_list')
         
         try:
             year = int(year)
         except ValueError:
             messages.error(request, '年份必须是数字')
-            return redirect('project_list')
+            return redirect('archives:project_list')
         
         project = Project.objects.create(
             name=name,
@@ -197,8 +248,11 @@ def create_project(request):
         messages.success(request, f'项目 "{project.name}" 创建成功！')
         return redirect('archives:project_detail', pk=project.id)
     
-    return redirect('project_list')
+    return redirect('archives:project_list')
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def initialize_cabinets(request):
     """初始化柜子和格子"""
     # 获取唯一的档案室
@@ -206,7 +260,7 @@ def initialize_cabinets(request):
         archive_room = ArchiveRoom.objects.first()
         if not archive_room:
             messages.error(request, '没有找到档案室，请先创建档案室')
-            return redirect('home')
+            return redirect('archives:home')
             
         # 获取当前柜子数量
         existing_cabinets = Cabinet.objects.filter(archive_room=archive_room).count()
@@ -248,12 +302,15 @@ def initialize_cabinets(request):
         else:
             messages.info(request, '柜子已存在，没有新建柜子')
             
-        return redirect('home')
+        return redirect('archives:home')
         
     except Exception as e:
         messages.error(request, f'初始化柜子时出错: {str(e)}')
-        return redirect('home')
+        return redirect('archives:home')
 
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def edit_project(request, pk):
     """编辑项目信息"""
     project = get_object_or_404(Project, pk=pk)
@@ -270,9 +327,9 @@ def edit_project(request, pk):
             referer = request.META.get('HTTP_REFERER', '')
             if 'projects/' in referer and not f'projects/{pk}' in referer:
                 # 如果来自项目列表页
-                return redirect('project_list')
+                return redirect('archives:project_list')
             # 否则，返回项目详情页
-            return redirect('project_detail', pk=project.pk)
+            return redirect('archives:project_detail', pk=project.pk)
         
         try:
             year = int(year)
@@ -282,9 +339,9 @@ def edit_project(request, pk):
             referer = request.META.get('HTTP_REFERER', '')
             if 'projects/' in referer and not f'projects/{pk}' in referer:
                 # 如果来自项目列表页
-                return redirect('project_list')
+                return redirect('archives:project_list')
             # 否则，返回项目详情页
-            return redirect('project_detail', pk=project.pk)
+            return redirect('archives:project_detail', pk=project.pk)
         
         # 更新项目信息
         project.name = name
@@ -299,13 +356,15 @@ def edit_project(request, pk):
         referer = request.META.get('HTTP_REFERER', '')
         if 'projects/' in referer and not f'projects/{pk}' in referer:
             # 如果来自项目列表页
-            return redirect('project_list')
+            return redirect('archives:project_list')
         # 否则，返回项目详情页
-        return redirect('project_detail', pk=project.pk)
+        return redirect('archives:project_detail', pk=project.pk)
     
     # 对于GET请求，重定向到项目详情页
-    return redirect('project_detail', pk=project.pk)
+    return redirect('archives:project_detail', pk=project.pk)
 
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
 def archive_box_detail(request, pk):
     """档案盒详情视图"""
     archive_box = get_object_or_404(ArchiveBox, pk=pk)

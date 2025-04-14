@@ -17,7 +17,7 @@
                 <i class="fas fa-search fa-3x mb-3 text-primary"></i>
                 <h3>查找档案</h3>
                 <p class="text-muted">快速查找您需要的档案信息和位置。</p>
-                <a href="/admin/archives/archive/" class="btn btn-outline-primary">查看档案列表</a>
+                <a href="{% url 'archives:search' %}" class="btn btn-outline-primary">查看档案列表</a>
             </div>
         </div>
     </div>
@@ -27,7 +27,28 @@
                 <i class="fas fa-plus-circle fa-3x mb-3 text-primary"></i>
                 <h3>录入档案</h3>
                 <p class="text-muted">将新档案录入系统并选择合适的存放位置。</p>
-                <a href="/admin/archives/archive/add/" class="btn btn-outline-primary">录入新档案</a>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'archives:add_archives' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-2"></i>单个录入
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-upload me-2"></i>批量导入
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'archives:bulk_import' 'box' %}">
+                                    <i class="fas fa-box me-2"></i>批量导入档案盒
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'archives:bulk_import' 'archive' %}">
+                                    <i class="fas fa-file me-2"></i>批量导入档案
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -81,4 +102,8 @@
     </div>
     {% endfor %}
 </div>
+
+<form action="{% url 'archives:search' %}" method="GET">
+    <!-- 其他表单内容保持不变 -->
+</form>
 {% endblock %}

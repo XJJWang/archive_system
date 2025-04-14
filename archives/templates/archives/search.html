@@ -1,0 +1,88 @@
+{% extends 'archives/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">档案搜索</h2>
+    
+    <!-- 搜索表单 -->
+    <form method="GET" action="{% url 'archives:search' %}" class="mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="query" class="form-control" placeholder="输入档案名称、关键词或编号..." value="{{ query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="project" class="form-select">
+                    <option value="">选择项目...</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>
+                        {{ project }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="year" class="form-select">
+                    <option value="">选择年份...</option>
+                    {% for year_option in years %}
+                    <option value="{{ year_option }}" {% if selected_year|stringformat:"s" == year_option|stringformat:"s" %}selected{% endif %}>
+                        {{ year_option }}年
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">搜索</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- 搜索结果 -->
+    {% if query or selected_project or selected_year %}
+        <div class="alert alert-info">
+            找到 {{ total_count }} 条结果
+            {% if total_count > 100 %}（显示前100条）{% endif %}
+        </div>
+        
+        {% if archives %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>档案名称</th>
+                        <th>所属项目</th>
+                        <th>档案盒</th>
+                        <th>位置</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for archive in archives %}
+                    <tr>
+                        <td>{{ archive.title }}</td>
+                        <td>{{ archive.box.project }}</td>
+                        <td>{{ archive.box.name }}</td>
+                        <td>{{ archive.get_location_description }}</td>
+                        <td>
+                            {% if archive.is_in_stock %}
+                            <span class="badge bg-success">在库</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">借出</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            未找到符合条件的档案，请尝试其他关键词或筛选条件。
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            请输入搜索条件开始查找档案。
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

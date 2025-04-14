@@ -17,4 +17,7 @@ urlpatterns = [
     path('projects/create/', views.create_project, name='create_project'),
     path('projects/<int:pk>/edit/', views.edit_project, name='edit_project'),
     path('initialize-cabinets/', views.initialize_cabinets, name='initialize_cabinets'),
+    path('search/', views.search_archives, name='search'),
+    path('download-template/<str:template_type>/', views.download_template, name='download_template'),
+    path('bulk-import/<str:import_type>/', views.bulk_import, name='bulk_import'),
 ]

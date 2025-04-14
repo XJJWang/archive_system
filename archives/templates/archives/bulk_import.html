@@ -1,0 +1,97 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}批量导入{% if import_type == 'box' %}档案盒{% else %}档案{% endif %} - 档案管理系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">批量导入{% if import_type == 'box' %}档案盒{% else %}档案{% endif %}</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>导入说明：</h5>
+                        <ol>
+                            <li>请先下载模板文件</li>
+                            <li>在Excel文件中查看"可用项目列表"或"可用档案盒列表"sheet页获取参考信息</li>
+                            <li>按照模板格式填写数据（标有*的为必填项）</li>
+                            <li>保存Excel文件后上传</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <a href="{% url 'archives:download_template' import_type %}" class="btn btn-success">
+                            <i class="fas fa-download me-2"></i>下载模板
+                        </a>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="file" class="form-label">选择Excel文件：</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>开始导入
+                            </button>
+                            <a href="{% url 'archives:home' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>返回首页
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">参考数据</h4>
+                </div>
+                <div class="card-body">
+                    {% if import_type == 'box' %}
+                        <h5>可用项目列表：</h5>
+                        <div class="list-group">
+                            {% for project in projects %}
+                            <div class="list-group-item">
+                                <h6 class="mb-1">{{ project.name }}</h6>
+                                <small class="text-muted">
+                                    年份：{{ project.year }}
+                                    {% if project.short_name %}
+                                    <br>简称：{{ project.short_name }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item">暂无项目数据</div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <h5>最近的档案盒：</h5>
+                        <div class="list-group">
+                            {% for box in archive_boxes|slice:":10" %}
+                            <div class="list-group-item">
+                                <h6 class="mb-1">{{ box.name }}</h6>
+                                <small class="text-muted">
+                                    {% if box.document_number %}
+                                    文档号：{{ box.document_number }}<br>
+                                    {% endif %}
+                                    项目：{{ box.project }}<br>
+                                    位置：{{ box.get_location_description }}
+                                </small>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item">暂无档案盒数据</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

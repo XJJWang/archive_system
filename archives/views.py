@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.forms import formset_factory
 from django.db import transaction
@@ -11,6 +11,11 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Group
+from django.db import models
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+from io import BytesIO
 
 
 @login_required(login_url='archives:login')
@@ -374,3 +379,256 @@ def archive_box_detail(request, pk):
         'box': archive_box,
         'archives': archives,
     })
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
+def search_archives(request):
+    """档案搜索视图"""
+    query = request.GET.get('query', '')
+    project_id = request.GET.get('project', '')
+    year = request.GET.get('year', '')
+    
+    # 获取所有项目用于过滤
+    projects = Project.objects.all().order_by('-year', 'name')
+    
+    # 初始化查询集
+    archives = Archive.objects.select_related('box__project').all()
+    
+    # 应用搜索条件
+    if query:
+        archives = archives.filter(
+            models.Q(title__icontains=query) |
+            models.Q(description__icontains=query) |
+            models.Q(box__document_number__icontains=query)
+        )
+    
+    # 项目过滤
+    if project_id:
+        archives = archives.filter(box__project_id=project_id)
+    
+    # 年份过滤
+    if year:
+        archives = archives.filter(box__project__year=year)
+    
+    # 获取所有可用的年份
+    years = Project.objects.values_list('year', flat=True).distinct().order_by('-year')
+    
+    context = {
+        'archives': archives[:100],  # 限制返回结果数量
+        'query': query,
+        'projects': projects,
+        'years': years,
+        'selected_project': project_id,
+        'selected_year': year,
+        'total_count': archives.count(),
+    }
+    
+    return render(request, 'archives/search.html', context)
+
+def create_archive_box_template():
+    """创建档案盒导入模板"""
+    wb = Workbook()
+    
+    # 主数据表
+    ws = wb.active
+    ws.title = "档案盒导入模板"
+    
+    # 设置表头
+    headers = ['档案盒名称*', '文档号', '日期(YYYY-MM-DD)', '描述', '项目编号*']  # 改为项目编号
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+    
+    # 添加示例数据
+    example = ['示例档案盒', 'DOC-2024-001', '2024-03-20', '这是一个示例描述', '1']
+    for col, value in enumerate(example, 1):
+        ws.cell(row=2, column=col, value=value)
+    
+    # 创建项目参考表
+    projects_ws = wb.create_sheet(title="可用项目列表")
+    projects_ws.append(['项目编号', '项目名称', '年份', '项目简称'])
+    projects_ws.column_dimensions['A'].width = 10
+    projects_ws.column_dimensions['B'].width = 40
+    projects_ws.column_dimensions['C'].width = 10
+    projects_ws.column_dimensions['D'].width = 20
+    
+    # 添加所有可用项目
+    for project in Project.objects.all().order_by('-year', 'name'):
+        projects_ws.append([
+            project.id,  # 项目编号
+            project.name,
+            project.year,
+            project.short_name or ''
+        ])
+    
+    return wb
+
+def create_archive_template():
+    """创建档案导入模板"""
+    wb = Workbook()
+    
+    # 主数据表
+    ws = wb.active
+    ws.title = "档案导入模板"
+    
+    # 设置表头
+    headers = ['档案名称*', '描述', '档案盒编号*', '份数', 'PDF文件路径']  # 改为档案盒编号
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+    
+    # 添加示例数据
+    example = ['示例档案', '这是一个示例档案', '1', '1', 'files/example.pdf']
+    for col, value in enumerate(example, 1):
+        ws.cell(row=2, column=col, value=value)
+    
+    # 创建档案盒参考表
+    boxes_ws = wb.create_sheet(title="可用档案盒列表")
+    boxes_ws.append(['档案盒编号', '档案盒名称', '文档号', '所属项目', '位置'])
+    boxes_ws.column_dimensions['A'].width = 12
+    boxes_ws.column_dimensions['B'].width = 30
+    boxes_ws.column_dimensions['C'].width = 15
+    boxes_ws.column_dimensions['D'].width = 30
+    boxes_ws.column_dimensions['E'].width = 40
+    
+    # 添加所有可用档案盒
+    for box in ArchiveBox.objects.select_related('project', 'slot__cabinet').all():
+        boxes_ws.append([
+            box.id,  # 档案盒编号
+            box.name,
+            box.document_number or '',
+            str(box.project),
+            box.get_location_description()
+        ])
+    
+    return wb
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
+def download_template(request, template_type):
+    """下载导入模板"""
+    if template_type == 'box':
+        wb = create_archive_box_template()
+        filename = "档案盒导入模板.xlsx"
+    else:
+        wb = create_archive_template()
+        filename = "档案导入模板.xlsx"
+    
+    # 保存到内存中
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
+def bulk_import(request, import_type):
+    """批量导入视图"""
+    context = {
+        'import_type': import_type,
+    }
+    
+    if import_type == 'box':
+        context['projects'] = Project.objects.all().order_by('-year', 'name')
+    else:
+        context['archive_boxes'] = ArchiveBox.objects.select_related('project').all().order_by('-created_at')
+
+    if request.method == 'POST' and request.FILES.get('file'):
+        try:
+            df = pd.read_excel(request.FILES['file'])
+            
+            if import_type == 'box':
+                # 处理档案盒导入
+                success_count = 0
+                error_messages = []
+                
+                for index, row in df.iterrows():
+                    try:
+                        # 验证必填字段
+                        if pd.isna(row['档案盒名称*']) or pd.isna(row['项目编号*']):
+                            error_messages.append(f"第{index+2}行：必填字段不能为空")
+                            continue
+                        
+                        try:
+                            project_id = int(row['项目编号*'])
+                            # 验证项目是否存在
+                            if not Project.objects.filter(id=project_id).exists():
+                                error_messages.append(f"第{index+2}行：项目编号 {project_id} 不存在")
+                                continue
+                        except ValueError:
+                            error_messages.append(f"第{index+2}行：项目编号必须是数字")
+                            continue
+                        
+                        # 创建档案盒
+                        box = ArchiveBox(
+                            name=row['档案盒名称*'],
+                            document_number=row['文档号'] if not pd.isna(row['文档号']) else None,
+                            date=row['日期(YYYY-MM-DD)'] if not pd.isna(row['日期(YYYY-MM-DD)']) else None,
+                            description=row['描述'] if not pd.isna(row['描述']) else None,
+                            project_id=project_id
+                        )
+                        box.save()
+                        success_count += 1
+                        
+                    except Exception as e:
+                        error_messages.append(f"第{index+2}行：{str(e)}")
+                
+                if error_messages:
+                    messages.warning(request, f"成功导入{success_count}个档案盒，但存在以下错误：\n" + "\n".join(error_messages))
+                else:
+                    messages.success(request, f"成功导入{success_count}个档案盒！")
+                    
+            else:
+                # 处理档案导入
+                success_count = 0
+                error_messages = []
+                
+                for index, row in df.iterrows():
+                    try:
+                        # 验证必填字段
+                        if pd.isna(row['档案名称*']) or pd.isna(row['档案盒编号*']):
+                            error_messages.append(f"第{index+2}行：必填字段不能为空")
+                            continue
+                        
+                        try:
+                            box_id = int(row['档案盒编号*'])
+                            # 验证档案盒是否存在
+                            if not ArchiveBox.objects.filter(id=box_id).exists():
+                                error_messages.append(f"第{index+2}行：档案盒编号 {box_id} 不存在")
+                                continue
+                        except ValueError:
+                            error_messages.append(f"第{index+2}行：档案盒编号必须是数字")
+                            continue
+                        
+                        # 创建档案
+                        archive = Archive(
+                            title=row['档案名称*'],
+                            description=row['描述'] if not pd.isna(row['描述']) else None,
+                            box_id=box_id,
+                            copy_count=int(row['份数']) if not pd.isna(row['份数']) else 1
+                        )
+                        archive.save()
+                        success_count += 1
+                        
+                    except Exception as e:
+                        error_messages.append(f"第{index+2}行：{str(e)}")
+                
+                if error_messages:
+                    messages.warning(request, f"成功导入{success_count}个档案，但存在以下错误：\n" + "\n".join(error_messages))
+                else:
+                    messages.success(request, f"成功导入{success_count}个档案！")
+        
+        except Exception as e:
+            messages.error(request, f"导入失败：{str(e)}")
+    
+    return render(request, 'archives/bulk_import.html', context)

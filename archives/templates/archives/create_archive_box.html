@@ -163,7 +163,7 @@
             const archiveRoomId = this.value;
             if (archiveRoomId) {
                 // 发送AJAX请求获取柜子
-                fetch(`/ajax/load-cabinets/?archive_room=${archiveRoomId}`)
+                fetch(`/archives/ajax/load-cabinets/?archive_room=${archiveRoomId}`)
                     .then(response => response.json())
                     .then(data => {
                         data.forEach(cabinet => {
@@ -183,7 +183,7 @@
             const cabinetId = this.value;
             if (cabinetId) {
                 // 发送AJAX请求获取空闲格子
-                fetch(`/ajax/load-slots/?cabinet=${cabinetId}`)
+                fetch(`/archives/ajax/load-slots/?cabinet=${cabinetId}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.length === 0) {

@@ -1,88 +1,511 @@
 {% extends 'archives/base.html' %}
 
+{% block title %}档案搜索 - 档案管理系统{% endblock %}
+
 {% block content %}
+{% csrf_token %}
 <div class="container mt-4">
     <h2 class="mb-4">档案搜索</h2>
     
     <!-- 搜索表单 -->
-    <form method="GET" action="{% url 'archives:search' %}" class="mb-4">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="query" class="form-control" placeholder="输入档案名称、关键词或编号..." value="{{ query }}">
-            </div>
-            <div class="col-md-3">
-                <select name="project" class="form-select">
-                    <option value="">选择项目...</option>
-                    {% for project in projects %}
-                    <option value="{{ project.id }}" {% if selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>
-                        {{ project }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="year" class="form-select">
-                    <option value="">选择年份...</option>
-                    {% for year_option in years %}
-                    <option value="{{ year_option }}" {% if selected_year|stringformat:"s" == year_option|stringformat:"s" %}selected{% endif %}>
-                        {{ year_option }}年
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">搜索</button>
-            </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{% url 'archives:search' %}" class="mb-0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="query" class="form-control" placeholder="输入档案名称、关键词或编号..." value="{{ query }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="project" class="form-select">
+                            <option value="">选择项目...</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}" {% if selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>
+                                {{ project }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="year" class="form-select">
+                            <option value="">选择年份...</option>
+                            {% for year_option in years %}
+                            <option value="{{ year_option }}" {% if selected_year|stringformat:"s" == year_option|stringformat:"s" %}selected{% endif %}>
+                                {{ year_option }}年
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="show_empty" value="true" id="showEmpty" {% if show_empty %}checked{% endif %}>
+                            <label class="form-check-label" for="showEmpty">显示空档案盒</label>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">搜索</button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 
     <!-- 搜索结果 -->
-    {% if query or selected_project or selected_year %}
-        <div class="alert alert-info">
-            找到 {{ total_count }} 条结果
-            {% if total_count > 100 %}（显示前100条）{% endif %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">搜索结果</h5>
+            <div>
+                <span class="badge bg-primary me-2">档案盒：{{ total_boxes }}</span>
+                <span class="badge bg-info">档案：{{ total_archives }}</span>
+            </div>
         </div>
         
-        {% if archives %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>档案名称</th>
-                        <th>所属项目</th>
-                        <th>档案盒</th>
-                        <th>位置</th>
-                        <th>状态</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for archive in archives %}
-                    <tr>
-                        <td>{{ archive.title }}</td>
-                        <td>{{ archive.box.project }}</td>
-                        <td>{{ archive.box.name }}</td>
-                        <td>{{ archive.get_location_description }}</td>
-                        <td>
-                            {% if archive.is_in_stock %}
-                            <span class="badge bg-success">在库</span>
-                            {% else %}
-                            <span class="badge bg-warning text-dark">借出</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+        <!-- 添加批量操作工具栏 -->
+        <div class="card-body border-bottom">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll">
+                        <label class="form-check-label" for="selectAll">全选</label>
+                    </div>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-primary" id="batchPlaceBtn" disabled data-bs-toggle="modal" data-bs-target="#batchPlaceModal">
+                        <i class="fas fa-archive me-1"></i> 批量放置
+                    </button>
+                    <span class="ms-2 text-muted" id="selectedCount">已选择 0 个档案盒</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form id="batchForm">
+                {% if results %}
+                    {% for result in results %}
+                    <div class="card mb-3 {% if result.is_empty %}border-warning{% endif %}">
+                        <div class="card-header {% if result.is_empty %}bg-warning-subtle{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <!-- 添加复选框 -->
+                                    <div class="form-check me-2">
+                                        <input class="form-check-input box-select" type="checkbox" 
+                                               name="selected_boxes" value="{{ result.box.id }}"
+                                               {% if result.box.slot %}disabled{% endif %}>
+                                    </div>
+                                    <h6 class="mb-0">
+                                        {% if result.is_empty %}
+                                        <i class="fas fa-box-open text-warning me-2"></i>
+                                        {% else %}
+                                        <i class="fas fa-box text-primary me-2"></i>
+                                        {% endif %}
+                                        {{ result.box.name }}
+                                        {% if result.box.document_number %}
+                                        <small class="text-muted">({{ result.box.document_number }})</small>
+                                        {% endif %}
+                                    </h6>
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary me-2">{{ result.box.project.name }}</span>
+                                    {% if result.box.slot %}
+                                    <span class="badge bg-success me-2">已放置</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark me-2">未放置</span>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBoxModal-{{ result.box.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="modal" data-bs-target="#deleteBoxModal-{{ result.box.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                位置：{{ result.box.get_location_description }}
+                            </small>
+                        </div>
+                        {% if not result.is_empty %}
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>档案名称</th>
+                                            <th>入库时间</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for archive in result.archives %}
+                                        <tr>
+                                            <td>{{ archive.title }}</td>
+                                            <td>{{ archive.import_date|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                {% if archive.is_in_stock %}
+                                                <span class="badge bg-success">在库</span>
+                                                {% else %}
+                                                <span class="badge bg-warning text-dark">借出</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                {% else %}
+                <div class="alert alert-warning">
+                    未找到符合条件的档案盒或档案，请尝试其他关键词或筛选条件。
+                </div>
+                {% endif %}
+            </form>
         </div>
-        {% else %}
-        <div class="alert alert-warning">
-            未找到符合条件的档案，请尝试其他关键词或筛选条件。
-        </div>
-        {% endif %}
-    {% else %}
-        <div class="alert alert-info">
-            请输入搜索条件开始查找档案。
-        </div>
-    {% endif %}
+    </div>
 </div>
+
+<!-- 在页面底部添加编辑和删除的模态框 -->
+{% for result in results %}
+<!-- 编辑档案盒模态框 -->
+<div class="modal fade" id="editBoxModal-{{ result.box.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑档案盒</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'archives:edit_box' result.box.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">档案盒名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" value="{{ result.box.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">文档号</label>
+                        <input type="text" class="form-control" name="document_number" value="{{ result.box.document_number|default:'' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">日期</label>
+                        <input type="date" class="form-control" name="date" value="{{ result.box.date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" name="description" rows="3">{{ result.box.description|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属项目 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="project" required>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}" {% if project.id == result.box.project.id %}selected{% endif %}>
+                                {{ project.name }} ({{ project.year }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 添加档案盒放置相关字段 -->
+                    <hr>
+                    <h6 class="mb-3">档案盒放置</h6>
+                    <div class="mb-3">
+                        <label class="form-label">档案室</label>
+                        <select class="form-select" name="archive_room" id="archiveRoom-{{ result.box.id }}">
+                            <option value="">请选择档案室...</option>
+                            {% for room in archive_rooms %}
+                            <option value="{{ room.id }}" {% if result.box.slot and result.box.slot.cabinet.archive_room.id == room.id %}selected{% endif %}>
+                                {{ room.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">柜子</label>
+                        <select class="form-select" name="cabinet" id="cabinet-{{ result.box.id }}">
+                            <option value="">{% if not result.box.slot.cabinet.archive_room %}请先选择档案室...{% else %}请选择柜子...{% endif %}</option>
+                            {% if result.box.slot %}
+                            <option value="{{ result.box.slot.cabinet.id }}" selected>
+                                {{ result.box.slot.cabinet.cabinet_number }}号柜
+                            </option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">侧面</label>
+                        <select class="form-select" name="side" id="side-{{ result.box.id }}">
+                            <option value="">{% if not result.box.slot.cabinet %}请先选择柜子...{% else %}请选择侧面...{% endif %}</option>
+                            <option value="left" {% if result.box.slot and result.box.slot.side == 'left' %}selected{% endif %}>左侧</option>
+                            <option value="right" {% if result.box.slot and result.box.slot.side == 'right' %}selected{% endif %}>右侧</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">格子</label>
+                        <select class="form-select" name="slot" id="slot-{{ result.box.id }}">
+                            <option value="">{% if not result.box.slot.side %}请先选择侧面...{% else %}请选择格子...{% endif %}</option>
+                            {% if result.box.slot %}
+                            <option value="{{ result.box.slot.id }}" selected>
+                                第{{ result.box.slot.row }}排 第{{ result.box.slot.column }}列
+                            </option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 删除档案盒确认模态框 -->
+<div class="modal fade" id="deleteBoxModal-{{ result.box.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除档案盒 "{{ result.box.name }}" 吗？</p>
+                {% if not result.is_empty %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    警告：此档案盒包含 {{ result.archives|length }} 个档案，删除档案盒将同时删除其中的所有档案！
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="post" action="{% url 'archives:delete_box' result.box.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 批量放置模态框 -->
+<div class="modal fade" id="batchPlaceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">批量放置档案盒</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="batchPlaceForm">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">选择档案室</label>
+                            <select class="form-select" id="archiveRoom" required>
+                                <option value="">请选择...</option>
+                                {% for room in archive_rooms %}
+                                <option value="{{ room.id }}">{{ room.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">选择柜子</label>
+                            <select class="form-select" id="cabinet" disabled required>
+                                <option value="">请先选择档案室...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">选择侧面</label>
+                            <select class="form-select" id="side" disabled required>
+                                <option value="">请先选择柜子...</option>
+                                <option value="left">左侧</option>
+                                <option value="right">右侧</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="slotGrid" class="border p-3 rounded">
+                        <div class="text-center text-muted">
+                            请先选择档案室、柜子和侧面...
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmBatchPlace" disabled>确认放置</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log('脚本开始加载');
+
+// 添加调试日志
+function debug(message) {
+    console.log(`[Debug] ${message}`);
+}
+
+// 等待页面完全加载
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成');
+    
+    // 测试选择器是否能找到元素
+    document.querySelectorAll('[id^="editBoxModal-"]').forEach(modal => {
+        console.log('找到模态框:', modal.id);
+        
+        // 测试模态框中的选择器
+        const selects = modal.querySelectorAll('select');
+        console.log('模态框中的选择器数量:', selects.length);
+        selects.forEach(select => {
+            console.log('选择器ID:', select.id);
+            
+            // 为每个选择器添加测试事件
+            select.addEventListener('change', function(event) {
+                console.log('选择器变化:', this.id, '新值:', this.value);
+            });
+        });
+    });
+    
+    // 为所有的档案室选择器添加事件监听
+    document.querySelectorAll('[id^="archiveRoom-"]').forEach(select => {
+        console.log('找到档案室选择器:', select.id);
+        
+        select.addEventListener('change', function(event) {
+            console.log('档案室选择变化:', this.id, '新值:', this.value);
+            
+            if (this.value) {
+                const url = `/archives/api/cabinets/?room=${this.value}`;
+                console.log('发送请求到:', url);
+                
+                fetch(url)
+                    .then(response => {
+                        console.log('收到响应:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('收到数据:', data);
+                        
+                        // 获取对应的柜子选择器
+                        const boxId = this.id.split('-')[1];
+                        const cabinetSelect = document.querySelector(`#cabinet-${boxId}`);
+                        
+                        if (cabinetSelect) {
+                            console.log('更新柜子选择器:', cabinetSelect.id);
+                            cabinetSelect.innerHTML = '<option value="">请选择柜子...</option>';
+                            data.forEach(cabinet => {
+                                cabinetSelect.innerHTML += `<option value="${cabinet.id}">${cabinet.cabinet_number}号柜</option>`;
+                            });
+                        } else {
+                            console.error('未找到柜子选择器:', `cabinet-${boxId}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('请求失败:', error);
+                    });
+            }
+        });
+    });
+    
+    // 为所有的柜子选择器添加事件监听
+    document.querySelectorAll('[id^="cabinet-"]').forEach(select => {
+        console.log('找到柜子选择器:', select.id);
+        
+        select.addEventListener('change', function(event) {
+            console.log('柜子选择变化:', this.id, '新值:', this.value);
+            
+            const boxId = this.id.split('-')[1];
+            const sideSelect = document.querySelector(`#side-${boxId}`);
+            
+            if (sideSelect) {
+                if (this.value) {
+                    sideSelect.innerHTML = `
+                        <option value="">请选择侧面...</option>
+                        <option value="left">左侧</option>
+                        <option value="right">右侧</option>
+                    `;
+                } else {
+                    sideSelect.innerHTML = '<option value="">请先选择柜子...</option>';
+                }
+            }
+        });
+    });
+    
+    // 为所有的侧面选择器添加事件监听
+    document.querySelectorAll('[id^="side-"]').forEach(select => {
+        console.log('找到侧面选择器:', select.id);
+        
+        select.addEventListener('change', function(event) {
+            console.log('侧面选择变化:', this.id, '新值:', this.value);
+            
+            const boxId = this.id.split('-')[1];
+            const cabinetSelect = document.querySelector(`#cabinet-${boxId}`);
+            const slotSelect = document.querySelector(`#slot-${boxId}`);
+            
+            if (this.value && cabinetSelect && cabinetSelect.value) {
+                const url = `/archives/api/slots/?cabinet=${cabinetSelect.value}&side=${this.value}`;
+                console.log('发送请求到:', url);
+                
+                fetch(url)
+                    .then(response => {
+                        console.log('收到响应:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('收到数据:', data);
+                        
+                        if (slotSelect) {
+                            slotSelect.innerHTML = '<option value="">请选择格子...</option>';
+                            data.forEach(slot => {
+                                if (!slot.is_occupied) {
+                                    slotSelect.innerHTML += `<option value="${slot.id}">第${slot.row}排 第${slot.column}列</option>`;
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('请求失败:', error);
+                    });
+            }
+        });
+    });
+});
+
+console.log('脚本加载完成');
+</script>
+
+<style>
+.slot-grid .slot-cell {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.slot-grid .slot-cell:hover:not(.occupied) {
+    background-color: #e9ecef;
+}
+
+.slot-grid .slot-cell.occupied {
+    background-color: #dc3545;
+    color: white;
+    cursor: not-allowed;
+}
+
+.slot-grid .slot-cell.selected {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.box-select {
+    cursor: pointer;
+}
+
+.box-select:disabled {
+    cursor: not-allowed;
+}
+</style>
 {% endblock %} 

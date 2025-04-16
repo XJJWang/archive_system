@@ -4,6 +4,18 @@
 
 {% block content %}
 <div class="container mt-4">
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="row">
         <div class="col-md-8">
             <div class="card">

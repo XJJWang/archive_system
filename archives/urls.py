@@ -20,4 +20,9 @@ urlpatterns = [
     path('search/', views.search_archives, name='search'),
     path('download-template/<str:template_type>/', views.download_template, name='download_template'),
     path('bulk-import/<str:import_type>/', views.bulk_import, name='bulk_import'),
+    path('box/<int:box_id>/edit/', views.edit_box, name='edit_box'),
+    path('box/<int:box_id>/delete/', views.delete_box, name='delete_box'),
+    path('api/cabinets/', views.get_cabinets, name='api_cabinets'),
+    path('api/slots/', views.get_slots, name='api_slots'),
+    path('api/batch-place/', views.batch_place_boxes, name='api_batch_place'),
 ]

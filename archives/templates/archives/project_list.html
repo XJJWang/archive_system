@@ -61,13 +61,14 @@
                                 <td>{{ project.archive_boxes.count }}</td>
                                 <td>{{ project.created_at|date:"Y-m-d H:i" }}</td>
                                 <td>
-                                    <a href="{% url 'archives:project_detail' project.id %}">{{ project.name }} class="btn btn-sm btn-info">
-                                        <i class="fas fa-info-circle"></i> 详情
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal" data-bs-target="#editProjectModal-{{ project.id }}">
-                                        <i class="fas fa-edit"></i> 编辑
-                                    </button>
-                                </td>
+                                    <td>
+                                        <a href="{% url 'archives:project_detail' project.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-info-circle"></i> 详情
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal" data-bs-target="#editProjectModal-{{ project.id }}">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                    </td>
                             </tr>
                             {% endfor %}
                         </tbody>

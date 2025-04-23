@@ -97,14 +97,24 @@
                                         {% else %}
                                         <i class="fas fa-box text-primary me-2"></i>
                                         {% endif %}
-                                        {{ result.box.name }}
-                                        {% if result.box.document_number %}
-                                        <small class="text-muted">({{ result.box.document_number }})</small>
-                                        {% endif %}
+                                        <a href="{% url 'archives:archive_box_detail' result.box.id %}" class="text-primary text-decoration-none hover-underline">
+                                            {{ result.box.name }}
+                                            {% if result.box.document_number %}
+                                            <small class="text-muted">({{ result.box.document_number }})</small>
+                                            {% endif %}
+                                        </a>
                                     </h6>
                                 </div>
-                                <div>
-                                    <span class="badge bg-secondary me-2">{{ result.box.project.name }}</span>
+                                <div class="d-flex align-items-center">
+                                    <!-- 添加档案数量显示 -->
+                                    <span class="badge bg-info me-3">
+                                        <i class="fas fa-file-alt me-1"></i>
+                                        档案数量：{{ result.archive_count }}
+                                    </span>
+                                    <!-- 修改这里：将项目名称改为可点击的链接 -->
+                                    <span class="badge bg-secondary me-2">
+                                        {{ result.box.project.name }}
+                                    </span>
                                     {% if result.box.slot %}
                                     <span class="badge bg-success me-2">已放置</span>
                                     {% else %}
@@ -136,7 +146,14 @@
                                     <tbody>
                                         {% for archive in result.archives %}
                                         <tr>
-                                            <td>{{ archive.title }}</td>
+                                            <td>
+                                                <a href="{% url 'archives:archive_detail' archive.id %}" class="text-decoration-none">
+                                                    {{ archive.title }}
+                                                    {% if archive.pdf_file %}
+                                                    <i class="fas fa-file-pdf text-danger ms-1" title="包含PDF文件"></i>
+                                                    {% endif %}
+                                                </a>
+                                            </td>
                                             <td>{{ archive.import_date|date:"Y-m-d H:i" }}</td>
                                             <td>
                                                 {% if archive.is_in_stock %}
@@ -748,6 +765,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .box-select:disabled {
     cursor: not-allowed;
+}
+
+/* 添加链接样式 */
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
+
+.text-primary {
+    color: #0d6efd !important;
 }
 </style>
 {% endblock %} 

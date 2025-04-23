@@ -408,8 +408,8 @@ def search_archives(request):
     # 获取所有档案室
     archive_rooms = ArchiveRoom.objects.all()
     
-    # 初始化查询集
-    boxes = ArchiveBox.objects.select_related('project', 'slot').all()
+    # 初始化查询集，使用 prefetch_related 预加载档案关系
+    boxes = ArchiveBox.objects.select_related('project', 'slot').prefetch_related('archives').all()
     
     # 应用过滤条件
     if query:
@@ -426,23 +426,26 @@ def search_archives(request):
     
     # 准备结果数据
     results = []
+    total_archives = 0
     for box in boxes:
+        archive_count = box.archives.count()  # 获取档案数量
+        total_archives += archive_count
         results.append({
             'box': box,
-            'is_empty': not box.archives.exists()
+            'is_empty': archive_count == 0,
+            'archive_count': archive_count  # 添加档案数量到结果中
         })
     
     context = {
         'results': results,
         'query': query,
         'projects': projects,
-        'archive_rooms': archive_rooms,  # 添加档案室列表
+        'archive_rooms': archive_rooms,
         'total_boxes': len(results),
+        'total_archives': total_archives,  # 添加总档案数
         'selected_project': project_id,
         'selected_year': year,
     }
-    
-    print("Debug - 结果数量:", len(results))  # 调试输出
     
     return render(request, 'archives/search.html', context)
 
@@ -819,3 +822,12 @@ def batch_place_boxes(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required(login_url='archives:login')
+@permission_required('borrow.can_manage_archives', login_url='archives:login', raise_exception=True)
+def archive_detail(request, pk):
+    """档案详情视图"""
+    archive = get_object_or_404(Archive, pk=pk)
+    return render(request, 'archives/archive_detail.html', {
+        'archive': archive,
+    })

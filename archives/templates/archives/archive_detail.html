@@ -1,0 +1,88 @@
+{% extends 'archives/base.html' %}
+
+{% block title %}{{ archive.title }} - 档案管理系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'archives:home' %}">首页</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'archives:search' %}">档案搜索</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'archives:archive_box_detail' archive.box.id %}">{{ archive.box.name }}</a></li>
+            <li class="breadcrumb-item active">{{ archive.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">档案详情</h5>
+            <div>
+                {% if archive.is_in_stock %}
+                <span class="badge bg-success">在库</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">借出</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 120px;">档案名称：</th>
+                            <td>{{ archive.title }}</td>
+                        </tr>
+                        <tr>
+                            <th>所属档案盒：</th>
+                            <td>
+                                <a href="{% url 'archives:archive_box_detail' archive.box.id %}">
+                                    {{ archive.box.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>所属项目：</th>
+                            <td>
+                                <a href="{% url 'archives:project_detail' archive.box.project.id %}">
+                                    {{ archive.box.project.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>存放位置：</th>
+                            <td>{{ archive.box.get_location_description }}</td>
+                        </tr>
+                        <tr>
+                            <th>入库时间：</th>
+                            <td>{{ archive.import_date|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>份数：</th>
+                            <td>{{ archive.copy_count }} 份</td>
+                        </tr>
+                        {% if archive.description %}
+                        <tr>
+                            <th>描述：</th>
+                            <td>{{ archive.description }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    {% if archive.pdf_file %}
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-file-pdf text-danger fa-3x mb-3"></i>
+                            <h6>PDF扫描件</h6>
+                            <a href="{{ archive.pdf_file.url }}" class="btn btn-primary mt-2" target="_blank">
+                                <i class="fas fa-download me-1"></i> 下载PDF
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

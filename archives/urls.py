@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/cabinets/', views.get_cabinets, name='api_cabinets'),
     path('api/slots/', views.get_slots, name='api_slots'),
     path('api/batch-place/', views.batch_place_boxes, name='api_batch_place'),
+    path('archives/<int:pk>/', views.archive_detail, name='archive_detail'),
 ]

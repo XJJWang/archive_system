@@ -784,21 +784,36 @@ def batch_place_boxes(request):
     try:
         data = json.loads(request.body)
         boxes = data.get('boxes', [])
-        slots = data.get('slots', [])
+        slot_id = data.get('slot_id')  # 修改这里：接收单个slot_id而不是slots数组
         
-        if len(boxes) != len(slots):
-            return JsonResponse({'success': False, 'error': '档案盒和格子数量不匹配'})
+        if not boxes or not slot_id:
+            return JsonResponse({'success': False, 'error': '请选择档案盒和目标格子'})
         
         with transaction.atomic():
-            for box_id, slot_id in zip(boxes, slots):
+            # 获取目标格子
+            slot = Slot.objects.get(id=slot_id)
+            
+            # 检查格子是否已被占用
+            if slot.is_occupied:
+                raise ValueError(f'格子 {slot.get_location_description()} 已被占用')
+            
+            # 将所有选中的档案盒放入同一个格子
+            for box_id in boxes:
                 box = ArchiveBox.objects.get(id=box_id)
-                slot = Slot.objects.get(id=slot_id)
                 
-                if slot.is_occupied:
-                    raise ValueError(f'格子 {slot.get_location_description()} 已被占用')
+                # 如果档案盒原来占用了其他格子，释放它
+                if box.slot:
+                    old_slot = box.slot
+                    old_slot.is_occupied = False
+                    old_slot.save()
                 
+                # 将档案盒放入新格子
                 box.slot = slot
                 box.save()
+            
+            # 标记格子为已占用
+            slot.is_occupied = True
+            slot.save()
         
         return JsonResponse({'success': True})
         

@@ -341,84 +341,107 @@
 
 {% block scripts %}
 <script>
-console.log('脚本开始加载');
-
-// 添加调试日志
-function debug(message) {
-    console.log(`[Debug] ${message}`);
-}
-
-// 等待页面完全加载
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM加载完成');
-    
-    // 测试选择器是否能找到元素
-    document.querySelectorAll('[id^="editBoxModal-"]').forEach(modal => {
-        console.log('找到模态框:', modal.id);
-        
-        // 测试模态框中的选择器
-        const selects = modal.querySelectorAll('select');
-        console.log('模态框中的选择器数量:', selects.length);
-        selects.forEach(select => {
-            console.log('选择器ID:', select.id);
-            
-            // 为每个选择器添加测试事件
-            select.addEventListener('change', function(event) {
-                console.log('选择器变化:', this.id, '新值:', this.value);
+    // 全选相关功能
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const boxCheckboxes = document.querySelectorAll('.box-select');
+    const batchPlaceBtn = document.getElementById('batchPlaceBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+
+    // 全选功能
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            boxCheckboxes.forEach(checkbox => {
+                // 只选择未被禁用的复选框
+                if (!checkbox.disabled) {
+                    checkbox.checked = isChecked;
+                }
             });
+            updateSelectedCount();
+        });
+    }
+
+    // 单个复选框事件
+    boxCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectedCount();
+            // 更新全选框状态
+            updateSelectAllState();
         });
     });
-    
+
+    // 更新选中计数和批量放置按钮状态
+    function updateSelectedCount() {
+        const checkedCount = Array.from(boxCheckboxes).filter(cb => cb.checked).length;
+        if (selectedCountSpan) {
+            selectedCountSpan.textContent = `已选择 ${checkedCount} 个档案盒`;
+        }
+        if (batchPlaceBtn) {
+            batchPlaceBtn.disabled = checkedCount === 0;
+        }
+    }
+
+    // 更新全选框状态
+    function updateSelectAllState() {
+        if (selectAllCheckbox) {
+            const availableBoxes = Array.from(boxCheckboxes).filter(cb => !cb.disabled);
+            const allChecked = availableBoxes.length > 0 && 
+                             availableBoxes.every(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked;
+        }
+    }
+
+    // 初始化UI状态
+    updateSelectedCount();
+    updateSelectAllState();
+
+    // 编辑档案盒位置相关功能
     // 为所有的档案室选择器添加事件监听
     document.querySelectorAll('[id^="archiveRoom-"]').forEach(select => {
-        console.log('找到档案室选择器:', select.id);
-        
-        select.addEventListener('change', function(event) {
-            console.log('档案室选择变化:', this.id, '新值:', this.value);
-            
+        select.addEventListener('change', function() {
             if (this.value) {
-                const url = `/archives/api/cabinets/?room=${this.value}`;
-                console.log('发送请求到:', url);
-                
-                fetch(url)
-                    .then(response => {
-                        console.log('收到响应:', response.status);
-                        return response.json();
-                    })
+                const boxId = this.id.split('-')[1];
+                const cabinetSelect = document.querySelector(`#cabinet-${boxId}`);
+                const sideSelect = document.querySelector(`#side-${boxId}`);
+                const slotSelect = document.querySelector(`#slot-${boxId}`);
+
+                // 重置后续选择器
+                if (cabinetSelect) {
+                    cabinetSelect.innerHTML = '<option value="">请选择柜子...</option>';
+                }
+                if (sideSelect) {
+                    sideSelect.innerHTML = '<option value="">请先选择柜子...</option>';
+                }
+                if (slotSelect) {
+                    slotSelect.innerHTML = '<option value="">请先选择侧面...</option>';
+                }
+
+                // 加载柜子列表
+                fetch(`/archives/ajax/load-cabinets/?archive_room=${this.value}`)
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('收到数据:', data);
-                        
-                        // 获取对应的柜子选择器
-                        const boxId = this.id.split('-')[1];
-                        const cabinetSelect = document.querySelector(`#cabinet-${boxId}`);
-                        
                         if (cabinetSelect) {
-                            console.log('更新柜子选择器:', cabinetSelect.id);
-                            cabinetSelect.innerHTML = '<option value="">请选择柜子...</option>';
                             data.forEach(cabinet => {
-                                cabinetSelect.innerHTML += `<option value="${cabinet.id}">${cabinet.cabinet_number}号柜</option>`;
+                                cabinetSelect.innerHTML += `
+                                    <option value="${cabinet.id}">${cabinet.cabinet_number}号柜</option>
+                                `;
                             });
-                        } else {
-                            console.error('未找到柜子选择器:', `cabinet-${boxId}`);
                         }
                     })
-                    .catch(error => {
-                        console.error('请求失败:', error);
-                    });
+                    .catch(error => console.error('加载柜子失败:', error));
             }
         });
     });
-    
+
     // 为所有的柜子选择器添加事件监听
     document.querySelectorAll('[id^="cabinet-"]').forEach(select => {
-        console.log('找到柜子选择器:', select.id);
-        
-        select.addEventListener('change', function(event) {
-            console.log('柜子选择变化:', this.id, '新值:', this.value);
-            
+        select.addEventListener('change', function() {
             const boxId = this.id.split('-')[1];
             const sideSelect = document.querySelector(`#side-${boxId}`);
-            
+            const slotSelect = document.querySelector(`#slot-${boxId}`);
+
+            // 重置后续选择器
             if (sideSelect) {
                 if (this.value) {
                     sideSelect.innerHTML = `
@@ -430,59 +453,271 @@ document.addEventListener('DOMContentLoaded', function() {
                     sideSelect.innerHTML = '<option value="">请先选择柜子...</option>';
                 }
             }
-        });
-    });
-    
-    // 为所有的侧面选择器添加事件监听
-    document.querySelectorAll('[id^="side-"]').forEach(select => {
-        console.log('找到侧面选择器:', select.id);
-        
-        select.addEventListener('change', function(event) {
-            console.log('侧面选择变化:', this.id, '新值:', this.value);
-            
-            const boxId = this.id.split('-')[1];
-            const cabinetSelect = document.querySelector(`#cabinet-${boxId}`);
-            const slotSelect = document.querySelector(`#slot-${boxId}`);
-            
-            if (this.value && cabinetSelect && cabinetSelect.value) {
-                const url = `/archives/api/slots/?cabinet=${cabinetSelect.value}&side=${this.value}`;
-                console.log('发送请求到:', url);
-                
-                fetch(url)
-                    .then(response => {
-                        console.log('收到响应:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('收到数据:', data);
-                        
-                        if (slotSelect) {
-                            slotSelect.innerHTML = '<option value="">请选择格子...</option>';
-                            data.forEach(slot => {
-                                if (!slot.is_occupied) {
-                                    slotSelect.innerHTML += `<option value="${slot.id}">第${slot.row}排 第${slot.column}列</option>`;
-                                }
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('请求失败:', error);
-                    });
+            if (slotSelect) {
+                slotSelect.innerHTML = '<option value="">请先选择侧面...</option>';
             }
         });
     });
-});
 
-console.log('脚本加载完成');
+    // 首先定义所有批量放置相关的变量
+    const batchArchiveRoom = document.getElementById('archiveRoom');
+    const batchCabinet = document.getElementById('cabinet');
+    const batchSide = document.getElementById('side');
+    const slotGrid = document.getElementById('slotGrid');
+    const confirmBatchPlace = document.getElementById('confirmBatchPlace');
+
+    // 创建格子网格的辅助函数
+    function createSlotGrid(slots) {
+        console.log('Creating slot grid with data:', slots);
+        
+        const rows = 6;
+        const cols = 5;
+        let html = '<div class="slot-grid">';
+        
+        try {
+            // 创建表格结构
+            for (let row = 1; row <= rows; row++) {
+                html += '<div class="row g-2 mb-2">';
+                for (let col = 1; col <= cols; col++) {
+                    // 修改查找逻辑
+                    const slot = slots.find(s => {
+                        if (!s) return false;
+                        // 直接使用row和column属性进行匹配
+                        return s.row === row && s.column === col;
+                    });
+                    
+                    console.log(`Slot at ${row}-${col}:`, slot || 'empty');
+                    
+                    // 如果没有找到对应的格子数据，就创建一个空格子
+                    const cellClass = slot ? (slot.is_occupied ? 'occupied' : '') : 'disabled';  // 添加disabled类
+                    const slotId = slot ? slot.id : '';
+                    const title = slot ? (slot.is_occupied ? '已占用' : '可选择') : '无效格子';
+                    
+                    html += `
+                        <div class="col">
+                            <div class="slot-cell ${cellClass}" 
+                                 data-slot-id="${slotId}" 
+                                 data-row="${row}" 
+                                 data-col="${col}"
+                                 title="${title}">
+                                ${row}-${col}
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        } catch (error) {
+            console.error('Error creating slot grid:', error);
+            return `
+                <div class="alert alert-danger">
+                    <h6>创建格子网格失败</h6>
+                    <p class="mb-0">错误信息: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    // 更新确认按钮状态函数
+    function updateConfirmButton() {
+        const selectedSlot = document.querySelector('.slot-cell.selected');
+        const selectedBoxCount = document.querySelectorAll('.box-select:checked').length;
+        
+        if (confirmBatchPlace) {
+            // 只要有选中的格子和档案盒就启用按钮
+            const shouldEnable = selectedSlot && selectedBoxCount > 0;
+            confirmBatchPlace.disabled = !shouldEnable;
+            
+            // 添加调试信息
+            console.log('确认按钮状态:', {
+                是否选中格子: !!selectedSlot,
+                选中档案盒数: selectedBoxCount,
+                应该启用按钮: shouldEnable,
+                按钮已禁用: confirmBatchPlace.disabled
+            });
+        }
+    }
+
+    // 档案室选择变化时加载柜子
+    if (batchArchiveRoom) {
+        batchArchiveRoom.addEventListener('change', function() {
+            // 重置后续选择器
+            batchCabinet.innerHTML = '<option value="">请选择柜子...</option>';
+            batchCabinet.disabled = true;
+            batchSide.innerHTML = '<option value="">请先选择柜子...</option>';
+            batchSide.disabled = true;
+            slotGrid.innerHTML = '<div class="text-center text-muted">请先选择档案室、柜子和侧面...</div>';
+
+            if (this.value) {
+                // 启用柜子选择器
+                batchCabinet.disabled = false;
+                
+                // 加载柜子列表
+                fetch(`/archives/ajax/load-cabinets/?archive_room=${this.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(cabinet => {
+                            batchCabinet.innerHTML += `
+                                <option value="${cabinet.id}">${cabinet.cabinet_number}号柜</option>
+                            `;
+                        });
+                    })
+                    .catch(error => {
+                        console.error('加载柜子失败:', error);
+                        alert('加载柜子列表失败，请重试');
+                    });
+            }
+        });
+    }
+
+    // 柜子选择变化时启用侧面选择
+    if (batchCabinet) {
+        batchCabinet.addEventListener('change', function() {
+            // 重置后续选择器
+            batchSide.innerHTML = '<option value="">请选择侧面...</option>';
+            batchSide.disabled = true;
+            slotGrid.innerHTML = '<div class="text-center text-muted">请先选择侧面...</div>';
+
+            if (this.value) {
+                // 启用侧面选择器
+                batchSide.disabled = false;
+                batchSide.innerHTML = `
+                    <option value="">请选择侧面...</option>
+                    <option value="left">左侧</option>
+                    <option value="right">右侧</option>
+                `;
+            }
+        });
+    }
+
+    // 侧面选择变化时加载格子网格
+    if (batchSide) {
+        batchSide.addEventListener('change', function() {
+            if (this.value && batchCabinet.value) {
+                // 显示加载中的提示
+                slotGrid.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">加载格子列表中...</div></div>';
+                
+                // 构建URL
+                const url = `/archives/ajax/load-slots/?cabinet=${batchCabinet.value}&side=${this.value}`;
+                console.log('Fetching slots from URL:', url);
+
+                // 加载格子列表
+                fetch(url)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Received slots data:', data);
+                        
+                        if (!Array.isArray(data)) {
+                            throw new Error('返回的数据格式不正确');
+                        }
+                        
+                        // 创建格子网格
+                        const gridHTML = createSlotGrid(data);
+                        slotGrid.innerHTML = gridHTML;
+
+                        // 为格子添加点击事件
+                        document.querySelectorAll('.slot-cell').forEach(cell => {
+                            if (!cell.classList.contains('occupied') && cell.dataset.slotId) {
+                                cell.addEventListener('click', function() {
+                                    // 移除其他格子的选中状态
+                                    document.querySelectorAll('.slot-cell.selected').forEach(selected => {
+                                        selected.classList.remove('selected');
+                                    });
+                                    
+                                    // 选中当前格子
+                                    this.classList.add('selected');
+                                    
+                                    // 添加调试信息
+                                    console.log('格子点击状态:', {
+                                        格子ID: this.dataset.slotId,
+                                        是否选中: true,
+                                        已选档案盒数: document.querySelectorAll('.box-select:checked').length
+                                    });
+                                    
+                                    updateConfirmButton();
+                                });
+                            }
+                        });
+                        
+                        updateConfirmButton();
+                    })
+                    .catch(error => {
+                        console.error('加载格子失败:', error);
+                        slotGrid.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h6>加载格子列表失败</h6>
+                                <p class="mb-0">错误信息: ${error.message}</p>
+                                <small>请检查网络连接或刷新页面重试</small>
+                            </div>
+                        `;
+                    });
+            }
+        });
+    }
+
+    // 确认批量放置
+    if (confirmBatchPlace) {
+        confirmBatchPlace.addEventListener('click', function() {
+            const selectedBoxes = Array.from(document.querySelectorAll('.box-select:checked')).map(cb => cb.value);
+            const selectedSlot = document.querySelector('.slot-cell.selected');
+            
+            if (!selectedSlot || !selectedSlot.dataset.slotId) {
+                alert('请选择一个有效的格子！');
+                return;
+            }
+
+            // 获取CSRF令牌
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // 发送批量放置请求
+            fetch('/archives/api/batch-place/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    boxes: selectedBoxes,
+                    slot_id: selectedSlot.dataset.slotId  // 只发送一个格子ID
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || '放置失败，请重试！');
+                }
+            })
+            .catch(error => {
+                console.error('批量放置失败:', error);
+                alert('操作失败，请重试');
+            });
+        });
+    }
+});
 </script>
 
 <style>
+.slot-grid {
+    margin-top: 20px;
+}
+
 .slot-grid .slot-cell {
     padding: 10px;
     text-align: center;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .slot-grid .slot-cell:hover:not(.occupied) {
@@ -498,6 +733,13 @@ console.log('脚本加载完成');
 .slot-grid .slot-cell.selected {
     background-color: #0d6efd;
     color: white;
+}
+
+.slot-grid .slot-cell.disabled {
+    background-color: #f8f9fa;
+    color: #adb5bd;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .box-select {

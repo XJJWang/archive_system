@@ -59,7 +59,7 @@ class ArchiveBox(models.Model):
     document_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="文档号")
     date = models.DateField(blank=True, null=True, verbose_name="日期")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
-    slot = models.OneToOneField(Slot, on_delete=models.SET_NULL, null=True, blank=True, related_name="archive_box", verbose_name="所在格子")
+    slot = models.ForeignKey(Slot, on_delete=models.SET_NULL, null=True, blank=True, related_name="archive_boxes", verbose_name="所在格子")
     is_special = models.BooleanField(default=False, verbose_name="是否特殊项目")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name="archive_boxes", verbose_name="所属项目")

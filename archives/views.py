@@ -26,9 +26,14 @@ import json
 def home(request):
     """首页视图"""
     rooms = ArchiveRoom.objects.all().prefetch_related('cabinets', 'cabinets__slots')
-    return render(request, 'archives/home.html', {
-        'rooms': rooms
-    })
+    context = {
+        'rooms': rooms,
+        'total_boxes': ArchiveBox.objects.count(),
+        'total_archives': Archive.objects.count(),
+        'total_projects': Project.objects.count(),
+        'recent_archives': Archive.objects.order_by('-import_date')[:5]  # 获取最近5条记录
+    }
+    return render(request, 'archives/home.html', context)
 
 def archives_login(request):
     """档案管理系统登录视图"""

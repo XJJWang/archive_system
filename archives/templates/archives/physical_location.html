@@ -1,0 +1,55 @@
+{% extends 'archives/base.html' %}
+{% load static %}
+
+{% block title %}档案物理位置管理{% endblock %}
+
+{% block content_title %}档案物理位置管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">档案物理位置管理</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for room in archive_rooms %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">{{ room.name }}</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for cabinet in room.cabinets.all %}
+                                        <div class="col-6">
+                                            <div class="info-box">
+                                                <span class="info-box-icon bg-info">
+                                                    <i class="fas fa-cabinet"></i>
+                                                </span>
+                                                <div class="info-box-content">
+                                                    <span class="info-box-text">{{ cabinet.name }}</span>
+                                                    <span class="info-box-number">
+                                                        {{ cabinet.slots.count }}个格子
+                                                    </span>
+                                                    <a href="{% url 'archives:cabinet_detail' cabinet.pk %}" class="btn btn-sm btn-primary">
+                                                        查看详情
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

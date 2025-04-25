@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}档案格子详情 - {{ slot.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">档案格子详情 - {{ slot.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'archives:cabinet_detail' slot.cabinet.pk %}" class="btn btn-default btn-sm">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for box in archive_boxes %}
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">{{ box.name }}</h4>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>档案盒编号：</strong>{{ box.box_number }}</p>
+                                    <p><strong>档案数量：</strong>{{ box.archives.count }}</p>
+                                    <p><strong>创建时间：</strong>{{ box.created_at|date:"Y-m-d H:i" }}</p>
+                                    <a href="{% url 'archives:box_detail' box.pk %}" class="btn btn-primary">
+                                        查看详情
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                该格子中暂无档案盒
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

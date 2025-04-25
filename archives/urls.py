@@ -26,4 +26,7 @@ urlpatterns = [
     path('api/slots/', views.get_slots, name='api_slots'),
     path('api/batch-place/', views.batch_place_boxes, name='api_batch_place'),
     path('archives/<int:pk>/', views.archive_detail, name='archive_detail'),
+    path('physical-location/', views.physical_location, name='physical_location'),
+    path('physical-location/cabinet/<int:pk>/', views.cabinet_detail, name='cabinet_detail'),
+    path('physical-location/slot/<int:pk>/', views.slot_detail, name='slot_detail'),
 ]

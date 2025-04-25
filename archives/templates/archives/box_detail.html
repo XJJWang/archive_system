@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}档案详情 - {{ archive.name }}{% endblock %}
+{% block title %}档案盒详情 - {{ box.name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,9 +9,9 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">档案详情 - {{ archive.name }}</h3>
+                    <h3 class="card-title">档案盒详情 - {{ box.name }}</h3>
                     <div class="card-tools">
-                        <a href="{% url 'archives:box_detail' archive.box.pk %}" class="btn btn-default btn-sm">
+                        <a href="{% url 'archives:slot_detail' box.slot.pk %}" class="btn btn-default btn-sm">
                             <i class="fas fa-arrow-left"></i> 返回
                         </a>
                     </div>
@@ -24,40 +24,45 @@
                                     <h4 class="card-title">基本信息</h4>
                                 </div>
                                 <div class="card-body">
-                                    <p><strong>档案编号：</strong>{{ archive.archive_number }}</p>
-                                    <p><strong>档案名称：</strong>{{ archive.name }}</p>
-                                    <p><strong>档案类型：</strong>{{ archive.archive_type.name }}</p>
-                                    <p><strong>所属档案盒：</strong>{{ archive.box.name }}</p>
-                                    <p><strong>所属格子：</strong>{{ archive.box.slot.name }}</p>
-                                    <p><strong>所属柜子：</strong>{{ archive.box.slot.cabinet.name }}</p>
-                                    <p><strong>所属位置：</strong>{{ archive.box.slot.cabinet.location.name }}</p>
-                                    <p><strong>创建时间：</strong>{{ archive.created_at|date:"Y-m-d H:i" }}</p>
+                                    <p><strong>档案盒编号：</strong>{{ box.box_number }}</p>
+                                    <p><strong>所属格子：</strong>{{ box.slot.name }}</p>
+                                    <p><strong>所属柜子：</strong>{{ box.slot.cabinet.name }}</p>
+                                    <p><strong>所属位置：</strong>{{ box.slot.cabinet.location.name }}</p>
+                                    <p><strong>创建时间：</strong>{{ box.created_at|date:"Y-m-d H:i" }}</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
-                                    <h4 class="card-title">档案内容</h4>
+                                    <h4 class="card-title">档案列表</h4>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered">
                                             <thead>
                                                 <tr>
-                                                    <th>字段名称</th>
-                                                    <th>字段值</th>
+                                                    <th>档案编号</th>
+                                                    <th>档案名称</th>
+                                                    <th>档案类型</th>
+                                                    <th>操作</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {% for field in archive.fields.all %}
+                                                {% for archive in archives %}
                                                 <tr>
-                                                    <td>{{ field.field.name }}</td>
-                                                    <td>{{ field.value }}</td>
+                                                    <td>{{ archive.archive_number }}</td>
+                                                    <td>{{ archive.name }}</td>
+                                                    <td>{{ archive.archive_type.name }}</td>
+                                                    <td>
+                                                        <a href="{% url 'archives:archive_detail' archive.pk %}" class="btn btn-primary btn-sm">
+                                                            查看详情
+                                                        </a>
+                                                    </td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="2" class="text-center">暂无字段</td>
+                                                    <td colspan="4" class="text-center">暂无档案</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

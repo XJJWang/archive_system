@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}档案柜详情 - {{ cabinet.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">档案柜详情 - {{ cabinet.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'archives:physical_location' %}" class="btn btn-default btn-sm">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">左侧格子</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for slot in left_slots %}
+                                        <div class="col-6">
+                                            <div class="info-box">
+                                                <span class="info-box-icon bg-success">
+                                                    <i class="fas fa-box"></i>
+                                                </span>
+                                                <div class="info-box-content">
+                                                    <span class="info-box-text">{{ slot.name }}</span>
+                                                    <span class="info-box-number">
+                                                        {{ slot.archive_boxes.count }}个档案盒
+                                                    </span>
+                                                    <a href="{% url 'archives:slot_detail' slot.pk %}" class="btn btn-sm btn-primary">
+                                                        查看详情
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">右侧格子</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for slot in right_slots %}
+                                        <div class="col-6">
+                                            <div class="info-box">
+                                                <span class="info-box-icon bg-success">
+                                                    <i class="fas fa-box"></i>
+                                                </span>
+                                                <div class="info-box-content">
+                                                    <span class="info-box-text">{{ slot.name }}</span>
+                                                    <span class="info-box-number">
+                                                        {{ slot.archive_boxes.count }}个档案盒
+                                                    </span>
+                                                    <a href="{% url 'archives:slot_detail' slot.pk %}" class="btn btn-sm btn-primary">
+                                                        查看详情
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

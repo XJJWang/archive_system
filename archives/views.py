@@ -420,8 +420,10 @@ def search_archives(request):
     if query:
         boxes = boxes.filter(
             models.Q(name__icontains=query) |
-            models.Q(document_number__icontains=query)
-        )
+            models.Q(document_number__icontains=query) |
+            models.Q(archives__title__icontains=query) |
+            models.Q(archives__description__icontains=query)
+        ).distinct()
     
     if project_id:
         boxes = boxes.filter(project_id=project_id)
@@ -433,12 +435,21 @@ def search_archives(request):
     results = []
     total_archives = 0
     for box in boxes:
-        archive_count = box.archives.count()  # 获取档案数量
+        # 获取匹配的档案
+        matching_archives = box.archives.all()
+        if query:
+            matching_archives = matching_archives.filter(
+                models.Q(title__icontains=query) |
+                models.Q(description__icontains=query)
+            )
+        
+        archive_count = matching_archives.count()
         total_archives += archive_count
         results.append({
             'box': box,
             'is_empty': archive_count == 0,
-            'archive_count': archive_count  # 添加档案数量到结果中
+            'archive_count': archive_count,
+            'archives': matching_archives  # 添加匹配的档案
         })
     
     context = {
@@ -447,7 +458,7 @@ def search_archives(request):
         'projects': projects,
         'archive_rooms': archive_rooms,
         'total_boxes': len(results),
-        'total_archives': total_archives,  # 添加总档案数
+        'total_archives': total_archives,
         'selected_project': project_id,
         'selected_year': year,
     }
@@ -836,3 +847,41 @@ def archive_detail(request, pk):
     return render(request, 'archives/archive_detail.html', {
         'archive': archive,
     })
+
+@login_required
+@permission_required('archives.view_archiveroom', raise_exception=True)
+def physical_location(request):
+    """显示所有档案室和柜子的概览"""
+    archive_rooms = ArchiveRoom.objects.all()
+    context = {
+        'archive_rooms': archive_rooms,
+    }
+    return render(request, 'archives/physical_location.html', context)
+
+@login_required
+@permission_required('archives.view_archiveroom', raise_exception=True)
+def cabinet_detail(request, pk):
+    """显示柜子的详细信息，包括两侧的格子"""
+    cabinet = get_object_or_404(Cabinet, pk=pk)
+    left_slots = Slot.objects.filter(cabinet=cabinet, side='left').order_by('row', 'column')
+    right_slots = Slot.objects.filter(cabinet=cabinet, side='right').order_by('row', 'column')
+    
+    context = {
+        'cabinet': cabinet,
+        'left_slots': left_slots,
+        'right_slots': right_slots,
+    }
+    return render(request, 'archives/cabinet_detail.html', context)
+
+@login_required
+@permission_required('archives.view_archiveroom', raise_exception=True)
+def slot_detail(request, pk):
+    """显示格子的详细信息，包括其中的档案盒"""
+    slot = get_object_or_404(Slot, pk=pk)
+    archive_boxes = ArchiveBox.objects.filter(slot=slot).order_by('name')
+    
+    context = {
+        'slot': slot,
+        'archive_boxes': archive_boxes,
+    }
+    return render(request, 'archives/slot_detail.html', context)

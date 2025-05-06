@@ -14,42 +14,136 @@
                     <h3 class="card-title">档案物理位置管理</h3>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        {% for room in archive_rooms %}
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">{{ room.name }}</h4>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        {% for cabinet in room.cabinets.all %}
-                                        <div class="col-6">
-                                            <div class="info-box">
-                                                <span class="info-box-icon bg-info">
-                                                    <i class="fas fa-cabinet"></i>
-                                                </span>
-                                                <div class="info-box-content">
-                                                    <span class="info-box-text">{{ cabinet.name }}</span>
-                                                    <span class="info-box-number">
-                                                        {{ cabinet.slots.count }}个格子
+                    {% for room in archive_rooms %}
+                    <div class="archive-room mb-4">
+                        <h4 class="room-title mb-3">
+                            <i class="fas fa-door-open me-2"></i>{{ room.name }}
+                        </h4>
+                        <div class="cabinets-container">
+                            <div class="row g-3">
+                                {% for cabinet in room.cabinets %}
+                                <div class="col-md-3 col-lg-2">
+                                    <div class="cabinet-box">
+                                        <div class="cabinet-header">
+                                            <h5 class="cabinet-title">{{ cabinet.cabinet_number }}号柜</h5>
+                                        </div>
+                                        <div class="cabinet-body">
+                                            <div class="cabinet-info">
+                                                <div class="badge-group mb-2">
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-primary">
+                                                            <i class="fas fa-arrow-left me-1"></i>
+                                                            左：{{ cabinet.left_slots_count|default:0 }}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-arrow-right me-1"></i>
+                                                            右：{{ cabinet.right_slots_count|default:0 }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="total-boxes mt-2">
+                                                    <span class="badge bg-warning text-dark total-badge">
+                                                        <i class="fas fa-boxes me-1"></i>
+                                                        共{{ cabinet.total_boxes|default:0 }}个档案盒
                                                     </span>
-                                                    <a href="{% url 'archives:cabinet_detail' cabinet.pk %}" class="btn btn-sm btn-primary">
-                                                        查看详情
-                                                    </a>
                                                 </div>
                                             </div>
+                                            <div class="cabinet-actions mt-3">
+                                                <a href="{% url 'archives:cabinet_detail' cabinet.id %}" 
+                                                   class="btn btn-sm btn-primary w-100">
+                                                    <i class="fas fa-search me-1"></i>查看详情
+                                                </a>
+                                            </div>
                                         </div>
-                                        {% endfor %}
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.archive-room {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.room-title {
+    color: #2c3e50;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.cabinet-box {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+
+.cabinet-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.cabinet-header {
+    background: #f1f8ff;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.cabinet-title {
+    margin: 0;
+    font-size: 1rem;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.cabinet-body {
+    padding: 15px;
+}
+
+.cabinet-info {
+    text-align: center;
+}
+
+.badge-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.cabinet-actions {
+    text-align: center;
+}
+
+.badge {
+    font-size: 0.95rem;
+    padding: 6px 12px;
+    margin: 0 2px;
+}
+
+.total-boxes {
+    display: flex;
+    justify-content: center;
+}
+
+.total-badge {
+    font-size: 1.05rem;
+    font-weight: bold;
+    padding: 8px 16px;
+}
+</style>
 {% endblock %} 

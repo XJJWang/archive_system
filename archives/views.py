@@ -852,7 +852,31 @@ def archive_detail(request, pk):
 @permission_required('archives.view_archiveroom', raise_exception=True)
 def physical_location(request):
     """显示所有档案室和柜子的概览"""
-    archive_rooms = ArchiveRoom.objects.all()
+    archive_rooms = []
+    for room in ArchiveRoom.objects.all():
+        cabinets = []
+        for cabinet in room.cabinets.all():
+            cabinet_id = cabinet.id
+            left_count = ArchiveBox.objects.filter(
+                slot__cabinet_id=cabinet_id,
+                slot__side='left'
+            ).count()
+            right_count = ArchiveBox.objects.filter(
+                slot__cabinet_id=cabinet_id,
+                slot__side='right'
+            ).count()
+            total = left_count + right_count
+            cabinets.append({
+                'cabinet_number': cabinet.cabinet_number,
+                'id': cabinet.id,
+                'left_slots_count': left_count,
+                'right_slots_count': right_count,
+                'total_boxes': total,
+            })
+        archive_rooms.append({
+            'name': room.name,
+            'cabinets': cabinets,
+        })
     context = {
         'archive_rooms': archive_rooms,
     }

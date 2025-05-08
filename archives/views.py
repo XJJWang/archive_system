@@ -887,13 +887,21 @@ def physical_location(request):
 def cabinet_detail(request, pk):
     """显示柜子的详细信息，包括两侧的格子"""
     cabinet = get_object_or_404(Cabinet, pk=pk)
-    left_slots = Slot.objects.filter(cabinet=cabinet, side='left').order_by('row', 'column')
-    right_slots = Slot.objects.filter(cabinet=cabinet, side='right').order_by('row', 'column')
-    
+    left_slots = Slot.objects.filter(cabinet=cabinet, side='left').order_by('row', 'column').prefetch_related('archive_boxes')
+    right_slots = Slot.objects.filter(cabinet=cabinet, side='right').order_by('row', 'column').prefetch_related('archive_boxes')
+
+    # 构造二维数组，行6列5
+    left_grid = [[None for _ in range(5)] for _ in range(6)]
+    for slot in left_slots:
+        left_grid[slot.row-1][slot.column-1] = slot
+    right_grid = [[None for _ in range(5)] for _ in range(6)]
+    for slot in right_slots:
+        right_grid[slot.row-1][slot.column-1] = slot
+
     context = {
         'cabinet': cabinet,
-        'left_slots': left_slots,
-        'right_slots': right_slots,
+        'left_grid': left_grid,
+        'right_grid': right_grid,
     }
     return render(request, 'archives/cabinet_detail.html', context)
 

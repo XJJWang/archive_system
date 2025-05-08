@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-
+{% load static archives_extras %}
 {% block title %}档案柜详情 - {{ cabinet.name }}{% endblock %}
 
 {% block content %}
@@ -18,61 +18,73 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
                                 <div class="card-header">
                                     <h4 class="card-title">左侧格子</h4>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row">
-                                        {% for slot in left_slots %}
-                                        <div class="col-6">
-                                            <div class="info-box">
-                                                <span class="info-box-icon bg-success">
-                                                    <i class="fas fa-box"></i>
-                                                </span>
-                                                <div class="info-box-content">
-                                                    <span class="info-box-text">{{ slot.name }}</span>
-                                                    <span class="info-box-number">
-                                                        {{ slot.archive_boxes.count }}个档案盒
-                                                    </span>
-                                                    <a href="{% url 'archives:slot_detail' slot.pk %}" class="btn btn-sm btn-primary">
-                                                        查看详情
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
+                                    <table class="table table-bordered text-center align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>行\列</th>
+                                                {% for col in 1|to:5 %}
+                                                <th>{{ col }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in left_grid %}
+                                            <tr>
+                                                <th>{{ forloop.counter }}</th>
+                                                {% for slot in row %}
+                                                <td class="slot-cell {% if slot and slot.archive_boxes.all|length > 0 %}table-success{% else %}table-light{% endif %}">
+                                                    {% if slot %}
+                                                        {{ slot.archive_boxes.all|length }}盒
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="card">
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
                                 <div class="card-header">
                                     <h4 class="card-title">右侧格子</h4>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row">
-                                        {% for slot in right_slots %}
-                                        <div class="col-6">
-                                            <div class="info-box">
-                                                <span class="info-box-icon bg-success">
-                                                    <i class="fas fa-box"></i>
-                                                </span>
-                                                <div class="info-box-content">
-                                                    <span class="info-box-text">{{ slot.name }}</span>
-                                                    <span class="info-box-number">
-                                                        {{ slot.archive_boxes.count }}个档案盒
-                                                    </span>
-                                                    <a href="{% url 'archives:slot_detail' slot.pk %}" class="btn btn-sm btn-primary">
-                                                        查看详情
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
+                                    <table class="table table-bordered text-center align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>行\列</th>
+                                                {% for col in 1|to:5 %}
+                                                <th>{{ col }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in right_grid %}
+                                            <tr>
+                                                <th>{{ forloop.counter }}</th>
+                                                {% for slot in row %}
+                                                <td class="slot-cell {% if slot and slot.archive_boxes.all|length > 0 %}table-success{% else %}table-light{% endif %}">
+                                                    {% if slot %}
+                                                        {{ slot.archive_boxes.all|length }}盒
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -82,4 +94,12 @@
         </div>
     </div>
 </div>
+
+{# 工具函数和样式 #}
+{% comment %}
+需要在views.py中传递最大行列数，或自定义模板filter: to, get_slot
+{% endcomment %}
+<style>
+.slot-cell { min-width: 60px; min-height: 60px; vertical-align: middle; }
+</style>
 {% endblock %} 
